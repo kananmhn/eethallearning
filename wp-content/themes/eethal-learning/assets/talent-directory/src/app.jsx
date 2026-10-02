@@ -174,11 +174,10 @@ function TopHeader({view, setView, globalSearch, setGlobalSearch, onSearchSubmit
   return (
     <div className="header-shell">
       <header className="topbar">
-        {!isAdmin && (
-          <a className="brand-row" href={CONFIG.homeUrl}>
-            <BrandLogo/>
-          </a>
-        )}
+        {/* Admins see the logo in the sidebar, so here only on phones (where the sidebar is hidden). */}
+        <a className={"brand-row"+(isAdmin?" brand-row--phone-only":"")} href={CONFIG.homeUrl}>
+          <BrandLogo/>
+        </a>
         <div className="search-box">
           <button type="button" className="search-go" onClick={onSearchSubmit} aria-label="Search">
             <I.Search/>
