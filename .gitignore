@@ -18,6 +18,8 @@ wp-config.php
 # Uploads
 /wp-content/uploads/
 
+.claude
+
 # Log files
 *.log
 

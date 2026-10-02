@@ -176,7 +176,7 @@ function eethal_customize_register( $wp_customize ) {
 	$add( 'whatsapp', 'eethal_contact', esc_html__( 'WhatsApp number', 'eethal-learning' ), 'text', esc_html__( 'Digits only, including country code — e.g. 919585907643. Leave empty to hide the header WhatsApp button.', 'eethal-learning' ) );
 	$add( 'whatsapp_message', 'eethal_contact', esc_html__( 'Pre-filled WhatsApp message', 'eethal-learning' ) );
 	$add( 'email', 'eethal_contact', esc_html__( 'Email address', 'eethal-learning' ), 'email' );
-	$add( 'enroll_url', 'eethal_contact', esc_html__( 'Enrolment form link', 'eethal-learning' ), 'url', esc_html__( 'Used by every "Enroll Now" and course button that has no link of its own.', 'eethal-learning' ) );
+	$add( 'enroll_url', 'eethal_contact', esc_html__( 'Enrolment form link', 'eethal-learning' ), 'url', esc_html__( 'Used by every "Enroll Now" and course button that has no link of its own. Leave empty to use the built-in Enroll Now form (/enroll/).', 'eethal-learning' ) );
 	$add( 'particles', 'eethal_contact', esc_html__( 'Animated particle background', 'eethal-learning' ), 'checkbox' );
 
 	// -----------------------------------------------------------------
@@ -331,6 +331,40 @@ function eethal_customize_register( $wp_customize ) {
 	$add( 'cta_phone_label', 'eethal_cta', esc_html__( 'Phone label', 'eethal-learning' ) );
 	$add( 'cta_email_label', 'eethal_cta', esc_html__( 'Email label', 'eethal-learning' ) );
 	$add( 'footer_text', 'eethal_cta', esc_html__( 'Footer credit line', 'eethal-learning' ), 'text', esc_html__( 'The copyright symbol and current year are added automatically.', 'eethal-learning' ) );
+
+	// -----------------------------------------------------------------
+	// Enroll Now form (/enroll/, inc/enrollments.php).
+	// -----------------------------------------------------------------
+	$section(
+		'eethal_enroll',
+		esc_html__( 'Enroll Now Form', 'eethal-learning' ),
+		esc_html__( 'Text of the application form behind every "Enroll Now" button. Write {batch} anywhere to show the batch name. Questions are written as "Label | hint shown inside the empty box".', 'eethal-learning' )
+	);
+
+	$q_help = esc_html__( 'Label | hint', 'eethal-learning' );
+	$add( 'enroll_batch', 'eethal_enroll', esc_html__( 'Batch', 'eethal-learning' ), 'text', esc_html__( 'Saved with each application, so you can filter by batch. Change it when a new batch opens, e.g. Batch 9.', 'eethal-learning' ) );
+	$add( 'enroll_badge', 'eethal_enroll', esc_html__( 'Badge above the heading', 'eethal-learning' ) );
+	$add( 'enroll_title', 'eethal_enroll', esc_html__( 'Heading', 'eethal-learning' ) );
+	$add( 'enroll_intro', 'eethal_enroll', esc_html__( 'Welcome text', 'eethal-learning' ), 'textarea' );
+	$add( 'enroll_note', 'eethal_enroll', esc_html__( 'Smaller text under the welcome', 'eethal-learning' ), 'textarea' );
+	$add( 'enroll_section_1', 'eethal_enroll', esc_html__( 'First group title', 'eethal-learning' ) );
+	$add( 'enroll_q_name', 'eethal_enroll', esc_html__( 'Question: name', 'eethal-learning' ), 'text', $q_help );
+	$add( 'enroll_q_email', 'eethal_enroll', esc_html__( 'Question: email', 'eethal-learning' ), 'text', $q_help );
+	$add( 'enroll_q_mobile', 'eethal_enroll', esc_html__( 'Question: mobile number', 'eethal-learning' ), 'text', $q_help );
+	$add( 'enroll_q_dob', 'eethal_enroll', esc_html__( 'Question: date of birth', 'eethal-learning' ) );
+	$add( 'enroll_q_district', 'eethal_enroll', esc_html__( 'Question: district', 'eethal-learning' ), 'text', $q_help );
+	$add( 'enroll_q_referred', 'eethal_enroll', esc_html__( 'Question: referred by', 'eethal-learning' ), 'text', $q_help );
+	$add( 'enroll_q_status', 'eethal_enroll', esc_html__( 'Question: current status', 'eethal-learning' ) );
+	$add( 'enroll_statuses', 'eethal_enroll', esc_html__( 'Current status choices', 'eethal-learning' ), 'textarea', esc_html__( 'One choice per line.', 'eethal-learning' ) );
+	$add( 'enroll_section_2', 'eethal_enroll', esc_html__( 'Second group title', 'eethal-learning' ) );
+	$add( 'enroll_q_degree', 'eethal_enroll', esc_html__( 'Question: degree', 'eethal-learning' ), 'text', esc_html__( 'Label | hint for the "Other" box', 'eethal-learning' ) );
+	$add( 'enroll_degrees', 'eethal_enroll', esc_html__( 'Degree choices', 'eethal-learning' ), 'textarea', esc_html__( 'One choice per line.', 'eethal-learning' ) );
+	$add( 'enroll_degree_other', 'eethal_enroll', esc_html__( '"Other" degree choice', 'eethal-learning' ), 'text', esc_html__( 'Lets people type their own degree. Leave empty to remove it.', 'eethal-learning' ) );
+	$add( 'enroll_q_college', 'eethal_enroll', esc_html__( 'Question: college name', 'eethal-learning' ), 'text', $q_help );
+	$add( 'enroll_q_passed', 'eethal_enroll', esc_html__( 'Question: year passed out', 'eethal-learning' ), 'text', $q_help );
+	$add( 'enroll_button', 'eethal_enroll', esc_html__( 'Submit button', 'eethal-learning' ) );
+	$add( 'enroll_thanks_title', 'eethal_enroll', esc_html__( 'Thank-you heading', 'eethal-learning' ), 'text', esc_html__( '{name} is replaced with the applicant\'s first name.', 'eethal-learning' ) );
+	$add( 'enroll_thanks_text', 'eethal_enroll', esc_html__( 'Thank-you message', 'eethal-learning' ), 'textarea' );
 }
 add_action( 'customize_register', 'eethal_customize_register' );
 

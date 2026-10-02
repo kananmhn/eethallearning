@@ -23,7 +23,7 @@ $hero_image_id = (int) get_theme_mod( 'eethal_hero_image', 0 );
 			<?php if ( eethal_opt( 'hero_btn' ) ) : ?>
 				<div class="hero-btns reveal">
 					<a href="<?php echo eethal_button_url( 'hero_btn_url' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>"
-						class="btn btn-primary btn-lg" target="_blank" rel="noopener noreferrer">
+						class="btn btn-primary btn-lg" <?php echo eethal_link_target( eethal_button_url( 'hero_btn_url' ) ); // phpcs:ignore WordPress.Security.EscapeOutput ?>>
 						<?php eethal_the_opt( 'hero_btn' ); ?>
 					</a>
 				</div>

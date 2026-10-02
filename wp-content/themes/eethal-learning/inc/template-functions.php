@@ -84,12 +84,37 @@ function eethal_img( $path ) {
 }
 
 /**
- * The enrolment link (Google Form, LMS checkout, contact page — whatever is set).
+ * The enrolment link: the built-in Enroll Now page, unless the Customizer sets another one.
  *
  * @return string
  */
 function eethal_enroll_url() {
-	return esc_url( eethal_opt( 'enroll_url' ) );
+	return eethal_enroll_link( eethal_opt( 'enroll_url' ) );
+}
+
+/**
+ * A button link, with empty links and the old Batch-8 Google Form (still saved in some
+ * settings) sent to the built-in Enroll Now page.
+ *
+ * @param string $url Saved link.
+ * @return string Escaped URL.
+ */
+function eethal_enroll_link( $url ) {
+	$url = trim( (string) $url );
+	if ( '' === $url || false !== strpos( $url, '1FAIpQLScoWJQlJOVmkPIG3sMwN2i5CXEbpWjqk0RqwYW93exELfw2rA' ) ) {
+		$url = eethal_td_page_urls()['enroll'];
+	}
+	return esc_url( $url );
+}
+
+/**
+ * Attributes that open a link in a new tab, but only when it leaves this site.
+ *
+ * @param string $url Link.
+ * @return string Attributes, ready to print.
+ */
+function eethal_link_target( $url ) {
+	return 0 === strpos( $url, home_url() ) ? '' : 'target="_blank" rel="noopener noreferrer"';
 }
 
 /**
@@ -254,7 +279,7 @@ function eethal_section_enabled( $slug ) {
  */
 function eethal_button_url( $key ) {
 	$url = trim( (string) eethal_opt( $key ) );
-	return '' === $url ? eethal_enroll_url() : esc_url( $url );
+	return eethal_enroll_link( '' === $url ? eethal_opt( 'enroll_url' ) : $url );
 }
 
 /**

@@ -326,7 +326,7 @@ Tags: education, one-column, custom-logo, custom-menu, featured-images, translat
       width: 100%;
       display: grid;
       grid-template-columns: 1.2fr 0.8fr;
-      gap: 4rem;
+      gap: 2rem;
       align-items: center
     }
 
@@ -1775,6 +1775,11 @@ Tags: education, one-column, custom-logo, custom-menu, featured-images, translat
       #enroll>.container>div {
         grid-template-columns: 1fr !important;
         text-align: center;
+        align-items: center;
+      }
+
+      .logo{
+        justify-content: center;
       }
 
       .check-list,
@@ -1784,7 +1789,7 @@ Tags: education, one-column, custom-logo, custom-menu, featured-images, translat
       }
 
       .hero {
-        padding: 130px 1.5rem 60px;
+        padding: 100px 1.5rem 60px;
       }
 
       .hero-img-wrap {
@@ -1825,7 +1830,7 @@ Tags: education, one-column, custom-logo, custom-menu, featured-images, translat
       }
 
       .section {
-        padding: 4.5rem 1.5rem;
+        padding: 2.5rem 1.5rem;
       }
 
       .about-stats {
@@ -2115,7 +2120,7 @@ header.scrolled .custom-logo {
 header.scrolled .nav-toggle-bar,
 header.scrolled .nav-toggle-bar::before,
 header.scrolled .nav-toggle-bar::after {
-  background: var(--dark);
+  background: var(--off-white);
 }
 
 .nav-toggle[aria-expanded="true"] .nav-toggle-bar {
@@ -2182,9 +2187,10 @@ nav li ul a {
     backdrop-filter: blur(12px);
   }
 
+  /* The scrolled header is navy with white links, so the open menu stays navy too. */
   header.scrolled #site-navigation.is-open {
-    background: #fff;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    background: var(--secondary);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
   }
 
   #site-navigation.is-open ul {
@@ -2202,6 +2208,106 @@ nav li ul a {
 
   header .header-inner {
     position: relative;
+  }
+}
+
+/* --- Compact header on phones: logo left; WhatsApp and menu right, on one line --- */
+
+@media (max-width: 600px) {
+
+  header,
+  header.scrolled {
+    height: 64px;
+    padding: 0 1rem;
+  }
+
+  header .header-inner {
+    gap: 0.75rem;
+  }
+
+  .logo-img,
+  header.scrolled .logo-img,
+  .custom-logo,
+  header.scrolled .custom-logo {
+    height: 60px;
+  }
+
+  .header-phone {
+    margin-left: auto;
+    gap: 0.45rem;
+    padding: 0.3rem 0.75rem 0.3rem 0.3rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .header-phone:hover {
+    transform: none;
+  }
+
+  .wa-icon-wrap {
+    width: 28px;
+    height: 28px;
+    font-size: 0.95rem;
+    box-shadow: none;
+  }
+
+  .phone-number {
+    font-size: 0.78rem;
+    line-height: 1;
+    white-space: nowrap;
+    transform: none;
+  }
+
+  .nav-toggle {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .nav-toggle-bar {
+    left: 9px;
+    top: 19px;
+  }
+
+  /* Open menu: full width under the header, same navy as the header, big tap targets. */
+  #site-navigation.is-open,
+  header.scrolled #site-navigation.is-open {
+    left: -1rem;
+    right: -1rem;
+    padding: 0.5rem 1rem 1rem;
+    background: var(--secondary);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  #site-navigation.is-open ul {
+    gap: 0;
+  }
+
+  #site-navigation.is-open a,
+  header.scrolled #site-navigation.is-open a {
+    display: block;
+    padding: 0.85rem 0.25rem;
+    font-size: 1rem;
+    color: var(--white);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  #site-navigation.is-open li:last-child > a {
+    border-bottom: 0;
+  }
+}
+
+/* Very narrow phones: just the WhatsApp icon. */
+@media (max-width: 360px) {
+
+  .header-phone {
+    padding: 0.3rem;
+  }
+
+  .phone-number {
+    display: none;
   }
 }
 

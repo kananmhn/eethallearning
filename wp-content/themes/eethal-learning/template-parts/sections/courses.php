@@ -30,9 +30,7 @@ $default_btn_text = eethal_opt( 'course_btn_text' );
 					if ( '' === $subtitle ) {
 						$subtitle = get_the_excerpt( $course );
 					}
-					if ( '' === $link ) {
-						$link = eethal_opt( 'enroll_url' );
-					}
+					$link = eethal_enroll_link( '' === $link ? eethal_opt( 'enroll_url' ) : $link );
 					?>
 					<div class="course-card reveal">
 						<div class="course-image-wrap">
@@ -54,7 +52,7 @@ $default_btn_text = eethal_opt( 'course_btn_text' );
 								<p><?php echo esc_html( $subtitle ); ?></p>
 							<?php endif; ?>
 							<?php if ( $btn_text ) : ?>
-								<a href="<?php echo esc_url( $link ); ?>" class="course-btn" target="_blank" rel="noopener noreferrer">
+								<a href="<?php echo $link; // phpcs:ignore WordPress.Security.EscapeOutput ?>" class="course-btn" <?php echo eethal_link_target( $link ); // phpcs:ignore WordPress.Security.EscapeOutput ?>>
 									<?php echo esc_html( $btn_text ); ?>
 								</a>
 							<?php endif; ?>
@@ -74,7 +72,7 @@ $default_btn_text = eethal_opt( 'course_btn_text' );
 							<h3><?php echo esc_html( $course['title'] ); ?></h3>
 							<p><?php echo esc_html( $course['desc'] ); ?></p>
 							<a href="<?php echo eethal_enroll_url(); // phpcs:ignore WordPress.Security.EscapeOutput ?>"
-								class="course-btn" target="_blank" rel="noopener noreferrer">
+								class="course-btn" <?php echo eethal_link_target( eethal_enroll_url() ); // phpcs:ignore WordPress.Security.EscapeOutput ?>>
 								<?php echo esc_html( $default_btn_text ); ?>
 							</a>
 						</div>

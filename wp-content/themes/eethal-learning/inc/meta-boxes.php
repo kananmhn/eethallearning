@@ -132,6 +132,10 @@ function eethal_meta_fields() {
 					'label' => __( 'Current CTC', 'eethal-learning' ),
 					'type'  => 'text',
 				),
+				'batch'       => array(
+					'label' => __( 'Batch no', 'eethal-learning' ),
+					'type'  => 'text',
+				),
 				'marital'     => array(
 					'label'   => __( 'Marital status', 'eethal-learning' ),
 					'type'    => 'select',
@@ -185,6 +189,10 @@ function eethal_meta_fields() {
 				),
 				'grad_year'      => array(
 					'label' => __( 'Year of graduation', 'eethal-learning' ),
+					'type'  => 'text',
+				),
+				'batch'          => array(
+					'label' => __( 'Batch no', 'eethal-learning' ),
 					'type'  => 'text',
 				),
 				'marital'        => array(
