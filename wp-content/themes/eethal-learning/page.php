@@ -1,0 +1,50 @@
+<?php
+/**
+ * Template for single pages.
+ *
+ * @package Eethal_Learning
+ */
+
+get_header();
+?>
+
+<main id="primary" class="site-main section">
+	<div class="container container-narrow">
+		<?php
+		while ( have_posts() ) :
+			the_post();
+			?>
+			<article id="post-<?php the_ID(); ?>" <?php post_class( 'entry' ); ?>>
+				<header class="page-header">
+					<h1 class="section-title"><?php the_title(); ?></h1>
+				</header>
+
+				<?php if ( has_post_thumbnail() ) : ?>
+					<div class="entry-thumbnail"><?php the_post_thumbnail( 'large' ); ?></div>
+				<?php endif; ?>
+
+				<div class="entry-content">
+					<?php
+					the_content();
+
+					wp_link_pages(
+						array(
+							'before' => '<div class="page-links">' . esc_html__( 'Pages:', 'eethal-learning' ),
+							'after'  => '</div>',
+						)
+					);
+					?>
+				</div>
+			</article>
+
+			<?php
+			if ( comments_open() || get_comments_number() ) {
+				comments_template();
+			}
+		endwhile;
+		?>
+	</div>
+</main>
+
+<?php
+get_footer();
