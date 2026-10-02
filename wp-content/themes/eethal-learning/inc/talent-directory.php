@@ -231,9 +231,16 @@ function eethal_td_is_app_page() {
  * sign-in state, so an old signed-out copy would show the sign-in screen again.
  */
 function eethal_td_nocache() {
-	if ( eethal_td_is_app_page() ) {
-		nocache_headers();
+	if ( ! eethal_td_is_app_page() ) {
+		return;
 	}
+	// The sign-in cookie only works over HTTPS, so a page opened over plain http
+	// (e.g. someone typed the address without https) would never stay signed in.
+	if ( ! is_ssl() && 'https' === wp_parse_url( home_url(), PHP_URL_SCHEME ) && isset( $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI'] ) ) {
+		wp_safe_redirect( 'https://' . sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) . esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 301 );
+		exit;
+	}
+	nocache_headers();
 }
 add_action( 'template_redirect', 'eethal_td_nocache' );
 
@@ -494,8 +501,25 @@ function eethal_td_record( $post, $type ) {
 		$value            = get_post_meta( $post->ID, eethal_td_meta_key( $field ), true );
 		$record[ $field ] = 'verified' === $field ? '1' === $value : (string) $value;
 	}
+	$record['photo']     = eethal_td_current_upload_url( $record['photo'] ?? '' );
 	$record['createdAt'] = get_post_time( 'c', true, $post );
 	return $record;
+}
+
+/**
+ * Point a photo saved under another copy of the site (e.g. http://localhost/... before
+ * the site moved) at this site's uploads folder. Other links are left alone.
+ *
+ * @param string $url Saved photo URL.
+ * @return string
+ */
+function eethal_td_current_upload_url( $url ) {
+	$marker = '/wp-content/uploads/';
+	$at     = strpos( $url, $marker );
+	if ( false === $at || 0 === strpos( $url, wp_upload_dir()['baseurl'] . '/' ) ) {
+		return $url;
+	}
+	return wp_upload_dir()['baseurl'] . '/' . substr( $url, $at + strlen( $marker ) );
 }
 
 /**

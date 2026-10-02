@@ -309,6 +309,7 @@ function eethal_td_entry_record( $post ) {
 	foreach ( eethal_td_entry_fields( $type ) as $field ) {
 		$record[ $field ] = (string) get_post_meta( $post->ID, eethal_td_meta_key( $field ), true );
 	}
+	$record['photo']      = eethal_td_current_upload_url( $record['photo'] ?? '' );
 	$record['createdAt']  = get_post_time( 'c', true, $post );
 	$record['reviewedAt'] = (string) get_post_meta( $post->ID, '_eethal_entry_reviewed_at', true );
 	$record['reviewedBy'] = (string) get_post_meta( $post->ID, '_eethal_entry_reviewed_by', true );
