@@ -8,6 +8,7 @@ import {
   Avatar, EmptyState, FilterSelect, DetailField, Field, formatDate,
 } from "./shared.jsx";
 import { Captcha, spamFields } from "./spam.jsx";
+import { ErrorBoundary } from "./error-boundary.jsx";
 import { EnrollFormApp } from "./enroll/EnrollFormApp.jsx";
 import { EnrollmentsPage } from "./enroll/EnrollmentsPage.jsx";
 
@@ -1434,22 +1435,26 @@ function App(){
 
   // The account's role decides admin or viewer.
   async function handleLoginSubmit(email,password){
+    let res;
     try{
-      const res = await api("auth/login", {
+      res = await api("auth/login", {
         method:"POST",
         body: JSON.stringify({email,password}),
       });
-      const data = await res.json().catch(()=>({}));
-      if(!res.ok) return {success:false, error: data.message || "Incorrect email or password."};
-      setRestNonce(data.nonce);
-      setAdminUser({name:data.name, email:data.email});
-      setRole(data.admin ? "admin" : "viewer");
-      if(data.admin && LINKED_VIEW) changeView(LINKED_VIEW);
-      setToast("Signed in as "+data.name.split(" ")[0]+".");
-      return {success:true};
     }catch(err){
       return {success:false, error:"Couldn't reach the server. Please try again."};
     }
+    const data = await res.json().catch(()=>null);
+    if(!res.ok) return {success:false, error: (data && data.message) || "Incorrect email or password."};
+    // Signed in on the server. If the reply isn't what the app expects, reload: the page
+    // then comes back signed in from the server instead of leaving the sign-in screen up.
+    if(!data || !data.nonce || !data.name){ window.location.reload(); return {success:true}; }
+    setRestNonce(data.nonce);
+    setAdminUser({name:data.name, email:data.email});
+    setRole(data.admin ? "admin" : "viewer");
+    if(data.admin && LINKED_VIEW) changeView(LINKED_VIEW);
+    setToast("Signed in as "+String(data.name).split(" ")[0]+".");
+    return {success:true};
   }
   // Sign out completely and go back to the home page.
   async function handleSignOut(){
@@ -1606,5 +1611,7 @@ const PUBLIC_VIEW = CONFIG.view==="entry" || CONFIG.view==="enroll";
 window.addEventListener("pageshow", e=>{ if(e.persisted && !PUBLIC_VIEW) window.location.reload(); });
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  CONFIG.view==="entry" ? <EntryFormApp/> : CONFIG.view==="enroll" ? <EnrollFormApp/> : <App/>
+  <ErrorBoundary>
+    {CONFIG.view==="entry" ? <EntryFormApp/> : CONFIG.view==="enroll" ? <EnrollFormApp/> : <App/>}
+  </ErrorBoundary>
 );

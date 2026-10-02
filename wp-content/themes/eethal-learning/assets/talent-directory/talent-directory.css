@@ -391,6 +391,8 @@ a{color:inherit;text-decoration:none;}
 .modal-icon{width:44px;height:44px;border-radius:12px;background:var(--red-soft);color:var(--red);display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
 .modal-card h3{margin:0 0 8px;font-size:16.5px;color:var(--text);}
 .modal-card p{margin:0 0 20px;font-size:13.5px;color:var(--text-soft);line-height:1.5;}
+/* Error text on the "Something went wrong" screen (src/error-boundary.jsx). */
+.crash-message{margin:0 0 20px;padding:10px 12px;max-height:160px;overflow:auto;background:var(--red-soft);color:var(--red);border-radius:8px;font-size:12px;line-height:1.45;white-space:pre-wrap;word-break:break-word;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
 
 /* ---------- Table ---------- */
