@@ -28,7 +28,32 @@ function eethal_defaults() {
 		'whatsapp'              => '919585907643',
 		'whatsapp_message'      => 'Hello eethal learings!',
 		'email'                 => 'eethallearning@gmail.com',
-		'enroll_url'            => 'https://docs.google.com/forms/d/e/1FAIpQLScoWJQlJOVmkPIG3sMwN2i5CXEbpWjqk0RqwYW93exELfw2rA/viewform?usp=sharing&ouid=118344306391361143190',
+		'enroll_url'            => '', // Empty: the built-in Enroll Now page (/enroll/).
+
+		// Enroll Now form (/enroll/). {batch} is replaced with the batch name.
+		'enroll_batch'          => 'Batch 8',
+		'enroll_badge'          => '{batch} · Admissions Open',
+		'enroll_title'          => 'Eethal Learning {batch} Application Form',
+		'enroll_intro'          => 'Welcome to Eethal Learning (Powered by VTNF) – {batch}. Please fill out this form to register. Make sure all the details provided are accurate and complete.',
+		'enroll_note'           => 'We offer quality IT skill training designed to help you adapt to current industry requirements and enhance your career opportunities.',
+		'enroll_section_1'      => 'Your Details',
+		'enroll_section_2'      => 'Education',
+		'enroll_q_name'         => 'Name | Your full name',
+		'enroll_q_email'        => 'Email | name@example.com',
+		'enroll_q_mobile'       => 'Mobile Number | 10-digit number',
+		'enroll_q_dob'          => 'Date of Birth',
+		'enroll_q_district'     => 'District | e.g. Madurai',
+		'enroll_q_referred'     => 'Referred by | Name of the person, or how you heard about us',
+		'enroll_q_status'       => 'Current Status',
+		'enroll_statuses'       => "I am currently studying in college.\nI am a working professional seeking new job opportunities.\nI am looking for a job.",
+		'enroll_q_degree'       => 'Degree | Type your degree, e.g. Diploma, MCA',
+		'enroll_degrees'        => "BE / B.Tech\nArts & Science",
+		'enroll_degree_other'   => 'Other',
+		'enroll_q_college'      => 'College Name | Your college name',
+		'enroll_q_passed'       => 'Year of Passed Out | e.g. 2024',
+		'enroll_button'         => 'Submit Application',
+		'enroll_thanks_title'   => 'Thank you, {name}!',
+		'enroll_thanks_text'    => 'Your application for {batch} has been received. Our team will contact you soon.',
 		'particles'             => true,
 
 		// Hero.

@@ -1,17 +1,16 @@
+// Talent Directory app: Dashboard, Working Professionals, Students, New Entries, Enrollments
+// and the public Entry Form. Shared pieces live in core.js, icons.jsx and shared.jsx;
+// the Enroll Now form and the Enrollments list live in enroll/.
+import { CONFIG, api, setRestNonce } from "./core.js";
+import { I } from "./icons.jsx";
+import {
+  BrandLogo, GRADIENTS, hashStr, tidy, tidyEducation, sameText, uniqueOptions,
+  Avatar, EmptyState, FilterSelect, DetailField, Field, formatDate,
+} from "./shared.jsx";
+import { EnrollFormApp } from "./enroll/EnrollFormApp.jsx";
+import { EnrollmentsPage } from "./enroll/EnrollmentsPage.jsx";
+
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
-
-/* ============ WORDPRESS ============ */
-// Set by inc/talent-directory.php: REST base, nonce, signed-in admin, page URLs.
-const CONFIG = window.EETHAL_TD || {restUrl:"/wp-json/eethal/v1/", nonce:"", view:"dashboard", pages:{}, homeUrl:"/", user:null};
-let restNonce = CONFIG.nonce;
-
-function api(path, options={}){
-  return fetch(CONFIG.restUrl + path, {
-    ...options,
-    credentials:"same-origin",
-    headers:{"Content-Type":"application/json", "X-WP-Nonce":restNonce, ...(options.headers||{})},
-  });
-}
 
 function viewFromPath(pathname){
   const clean = p => p.replace(/\/+$/,"");
@@ -19,39 +18,14 @@ function viewFromPath(pathname){
   return match || null;
 }
 
-/* ============ ICONS ============ */
-const I = {
-  Home:(p)=>(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>),
-  Users:(p)=>(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5"/><circle cx="17.5" cy="8.5" r="2.4"/><path d="M16 14.6c2.7.4 4.7 2.2 5.2 5"/></svg>),
-  Grad:(p)=>(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M2 8 12 3l10 5-10 5-10-5Z"/><path d="M6 10.5V16c0 1.6 2.7 3 6 3s6-1.4 6-3v-5.5"/><path d="M21 8v6"/></svg>),
-  Shield:(p)=>(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 3l8 3v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6l8-3Z"/><path d="M9 12l2 2 4-4"/></svg>),
-  Chart:(p)=>(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg>),
-  Settings:(p)=>(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.9-1.4-2-3.4-2.2.8a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.5 2.5a7.6 7.6 0 0 0-2.6 1.5l-2.2-.8-2 3.4L4.6 10.5a7.6 7.6 0 0 0 0 3L2.7 15l2 3.4 2.2-.9c.75.66 1.63 1.17 2.6 1.5l.5 2.5h4l.5-2.5a7.6 7.6 0 0 0 2.6-1.5l2.2.9 2-3.4-1.9-1.5Z"/></svg>),
-  Logout:(p)=>(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>),
-  Search:(p)=>(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>),
-  Bell:(p)=>(<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8a6 6 0 1 0-12 0c0 3.5-1 5-2 6h16c-1-1-2-2.5-2-6Z"/><path d="M9.5 20a2.5 2.5 0 0 0 5 0"/></svg>),
-  Chevron:(p)=>(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m6 9 6 6 6-6"/></svg>),
-  Dots:(p)=>(<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" {...p}><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>),
-  Back:(p)=>(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m12 19-7-7 7-7"/><path d="M5 12h14"/></svg>),
-  Pin:(p)=>(<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 21s-7-6.1-7-11a7 7 0 1 1 14 0c0 4.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>),
-  Mail:(p)=>(<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>),
-  Phone:(p)=>(<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6.6 10.8a13 13 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 10 10 0 0 0 3.1.5 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 10 10 0 0 0 .5 3.1 1 1 0 0 1-.25 1L6.6 10.8Z"/></svg>),
-  Building:(p)=>(<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h1M14 16h1"/></svg>),
-  Plus:(p)=>(<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 5v14M5 12h14"/></svg>),
-  Edit:(p)=>(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>),
-  Trash:(p)=>(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"/></svg>),
-  Eye:(p)=>(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>),
-  Check:(p)=>(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 12l5 5L20 6"/></svg>),
-  CheckCircle:(p)=>(<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" {...p}><circle cx="12" cy="12" r="10"/><path d="M8.5 12.5l2.3 2.3 5-5" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>),
-  Close:(p)=>(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 6 6 18M6 6l12 12"/></svg>),
-  Menu:(p)=>(<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 6h16M4 12h16M4 18h16"/></svg>),
-  Alert:(p)=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 9v4"/><path d="M10.3 3.9 2.5 17.5A1.5 1.5 0 0 0 3.8 20h16.4a1.5 1.5 0 0 0 1.3-2.5L13.7 3.9a1.5 1.5 0 0 0-2.6 0Z"/><path d="M12 16.2h.01"/></svg>),
-  Filter:(p)=>(<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 5h16M7 12h10M10 19h4"/></svg>),
-  Empty:(p)=>(<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M8.5 11h5"/></svg>),
-  Rupee:(p)=>(<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 4h12M6 9h12M9 4c3.3 0 5.5 2 5.5 5S12.3 14 9 14H7l7.5 7"/></svg>),
-  Heart:(p)=>(<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20Z"/></svg>),
-  Arrow:(p)=>(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14M13 6l6 6-6 6"/></svg>),
-};
+
+
+// Profile type names, shown as a label on forms, entries and profiles.
+const TYPE_LABEL = {professional:"Working Professional", student:"Student"};
+function TypeChip({type}){
+  const Icon = type==="student" ? I.Grad : I.Users;
+  return <span className={"type-chip type-chip--"+type}><Icon/> {TYPE_LABEL[type]}</span>;
+}
 
 /* ============ MOCK DATA ============ */
 const DISTRICTS = ["Chennai","Coimbatore","Madurai","Trichy","Salem","Erode","Vellore","Tirunelveli"];
@@ -61,95 +35,34 @@ const EDUCATIONS = ["B.E","B.Tech","M.E","M.Tech","MBA","MCA","B.Sc","M.Sc"];
 const SPECIALIZATIONS = ["Computer Science Engineering","Information Technology","Electronics & Communication","Mechanical Engineering","Data Science","AI & Machine Learning","Business Administration","Commerce"];
 const GRAD_YEARS = [2023,2024,2025,2026,2027];
 const MARITAL_STATUSES = ["Married","Unmarried"];
-const GRADIENTS = [["#6366F1","#EC4899"],["#0EA5E9","#8B5CF6"],["#0FA981","#5B5FEF"],["#F59E0B","#EF4444"],["#EC4899","#7C3AED"],["#10B981","#0891B2"]];
 const ADMIN_GRADIENT = ["#5B5FEF","#8B5CF6"];
 
-function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return Math.abs(h); }
-function gradientFor(name){ const g=GRADIENTS[hashStr(name)%GRADIENTS.length]; return {background:`linear-gradient(135deg, ${g[0]}, ${g[1]})`}; }
-function initials(name){ return name.split(" ").filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join(""); }
 function pick(arr,seed){ return arr[seed % arr.length]; }
 
-// Filter helpers: values that differ only by spaces, dots or case are one option, so
-// "B.E", "B. E" and "BE" merge, while "Bachelor of Engineering" stays separate.
-const tidy = v => String(v ?? "").trim().replace(/\s+/g," ");
-const compactKey = v => tidy(v).replace(/[\s.]/g,"").toLowerCase();
-// Education is shown without a space after dots ("B. Tech" => "B.Tech"), as the server saves it.
-const tidyEducation = v => tidy(v).replace(/\.\s+/g,".");
-const sameText = (a,b) => compactKey(a) === compactKey(b);
-function uniqueOptions(values){
-  const groups = new Map(); // compact key -> Map(spelling -> uses)
-  values.forEach(v=>{
-    const t = tidy(v); if(!t) return;
-    const k = compactKey(t);
-    if(!groups.has(k)) groups.set(k, new Map());
-    groups.get(k).set(t, (groups.get(k).get(t)||0) + 1);
-  });
-  // Show each group's most used spelling.
-  return [...groups.values()]
-    .map(g=>[...g.entries()].sort((a,b)=>b[1]-a[1] || a[0].length-b[0].length)[0][0])
-    .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}));
-}
+// Marital filter: "NA" picks profiles with no marital status, matching the "NA" shown on cards.
+const MARITAL_FILTER_OPTS = [...MARITAL_STATUSES,"NA"];
+const matchesMarital = (value,filter) => !filter || (filter==="NA" ? !tidy(value) : sameText(value,filter));
 
-const NOTIFICATIONS = [
-  {id:1,text:"New professional \u201cKarthik R\u201d was added to the directory.",time:"10 min ago",unread:true},
-  {id:2,text:"Student profile \u201cHarini P\u201d was updated.",time:"1 hour ago",unread:true},
-  {id:3,text:"Admin profile \u201cPreethi Vasan\u201d changed role to Editor.",time:"3 hours ago",unread:true},
-  {id:4,text:"Profile \u201cRohan Verma\u201d was deleted from Students.",time:"Yesterday",unread:false},
-  {id:5,text:"New professional \u201cMeena Rajan\u201d was added to the directory.",time:"2 days ago",unread:false},
-];
+// Notifications come from the server's activity log (GET notifications). "Unread" means
+// newer than the last time this browser opened the bell, kept in localStorage.
+const NOTIF_SEEN_KEY = "eethal_td_notif_seen";
+function readNotifSeen(){ try{ return localStorage.getItem(NOTIF_SEEN_KEY) || ""; }catch(e){ return ""; } }
+function writeNotifSeen(iso){ try{ localStorage.setItem(NOTIF_SEEN_KEY, iso); }catch(e){} }
+
+function timeAgo(iso){
+  const secs = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if(secs < 60) return "Just now";
+  const mins = Math.floor(secs/60);
+  if(mins < 60) return mins+" min ago";
+  const hours = Math.floor(mins/60);
+  if(hours < 24) return hours+(hours===1?" hour ago":" hours ago");
+  const days = Math.floor(hours/24);
+  if(days === 1) return "Yesterday";
+  if(days < 7) return days+" days ago";
+  return new Date(iso).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+}
 
 /* ============ SMALL COMPONENTS ============ */
-function extractDriveId(url){
-  if(!url || typeof url !== 'string') return null;
-  const trimmed = url.trim();
-  if(trimmed.startsWith('data:')) return null;
-  if(trimmed.includes('drive.google.com') || trimmed.includes('googleusercontent.com')){
-    const match = trimmed.match(/id=([a-zA-Z0-9_-]+)/) || trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    return match ? match[1] : null;
-  }
-  return null;
-}
-
-function Avatar({name,size=44,gradient,photo}){
-  const [imgError, setImgError] = useState(false);
-
-  useEffect(()=>{
-    setImgError(false);
-  }, [photo]);
-
-  const bg = gradient
-    ? {background:`linear-gradient(135deg, ${gradient[0]}, ${gradient[1]})`}
-    : gradientFor(name);
-
-  let src = null;
-  if(!imgError && photo && typeof photo === 'string' && photo.trim()){
-    const trimmed = photo.trim();
-    const driveId = extractDriveId(trimmed);
-    if(driveId){
-      src = `https://lh3.googleusercontent.com/d/${driveId}`;
-    } else {
-      src = trimmed;
-    }
-  }
-
-  if(src){
-    return (
-      <img
-        src={src}
-        alt={name}
-        className="avatar"
-        style={{width:size,height:size,objectFit:'cover',objectPosition:'center top',borderRadius:'50%',boxShadow:'0 2px 8px rgba(0,0,0,0.1)',flexShrink:0}}
-        onError={()=>setImgError(true)}
-      />
-    );
-  }
-
-  return (
-    <div className="avatar" style={{width:size,height:size,fontSize:size*0.36, ...bg}}>
-      {initials(name)}
-    </div>
-  );
-}
 
 function Toast({message,onClose}){
   useEffect(()=>{ const t=setTimeout(onClose,2600); return ()=>clearTimeout(t); },[message]);
@@ -186,16 +99,6 @@ function CardMenu({onView,onEdit,onDelete,isAdmin}){
   );
 }
 
-function EmptyState({title,subtitle,actionLabel,onAction}){
-  return (
-    <div className="empty-state">
-      <I.Empty style={{color:'#C7CADC'}}/>
-      <h3>{title}</h3>
-      <p>{subtitle}</p>
-      {actionLabel && <button className="btn btn-primary" onClick={onAction}><I.Plus/>{actionLabel}</button>}
-    </div>
-  );
-}
 
 // "Load More": `page` is how many batches are shown, so each click appends the
 // next `pageSize` profiles below the ones already on screen.
@@ -219,35 +122,35 @@ function LoadMore({page,setPage,total,pageSize}){
 
 /* ============ TOP NAVIGATION (logo + subnav + header) ============ */
 /* ============ ADMIN SIDEBAR (only shown once signed in) ============ */
-function Sidebar({view,setView,onLogout}){
+function Sidebar({view,setView,onSignOut,pendingCount}){
   const items = [
     {key:"dashboard",label:"Dashboard",icon:I.Home},
     {key:"professionals",label:"Working Professionals",icon:I.Users},
     {key:"students",label:"Students",icon:I.Grad},
+    {key:"entries",label:"New Entries",icon:I.Inbox,count:pendingCount},
+    {key:"enrollments",label:"Enrollments",icon:I.Form},
   ];
   return (
     <aside className="sidebar">
       <div className="sidebar-logo-row">
-        <div className="logo-mark">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="2.6"/><circle cx="17" cy="7" r="2.6"/><circle cx="12" cy="17" r="2.6"/><path d="M9 8.5 10.3 15M15 8.5 13.7 15"/></svg>
-        </div>
-        <div className="logo-text on-dark font-display">Eethal Learning</div>
+        <BrandLogo onDark/>
       </div>
-      <div className="sidebar-badge"><I.Shield style={{width:14,height:14}}/> Admin Mode</div>
+      <div className="sidebar-badge"><I.Shield style={{width:14,height:14}}/> Talent Pool Admin</div>
       <nav className="nav-section">
         {items.map(it=>(
           <button key={it.key} className={"nav-item"+(view===it.key?" active":"")} onClick={()=>setView(it.key)}>
             <it.icon/> {it.label}
+            {it.count>0 && <span className="nav-count">{it.count}</span>}
           </button>
         ))}
         <div className="nav-divider"/>
-        <button className="nav-item" onClick={onLogout}><I.Logout/> Logout</button>
+        <button className="nav-item" onClick={onSignOut}><I.Logout/> Sign Out</button>
       </nav>
     </aside>
   );
 }
 
-function TopHeader({view, setView, globalSearch, setGlobalSearch, onSearchSubmit, notifOpen, setNotifOpen, profileOpen, setProfileOpen, notifications, isAdmin, adminUser, onRequestLogin, onLogout}){
+function TopHeader({view, setView, globalSearch, setGlobalSearch, onSearchSubmit, notifOpen, setNotifOpen, profileOpen, setProfileOpen, notifications, onNotifOpen, onNotifClick, isAdmin, adminUser, onSignOut}){
   const notifRef = useRef(null);
   const profRef = useRef(null);
   useOutsideClose(notifRef, ()=>setNotifOpen(false));
@@ -262,19 +165,16 @@ function TopHeader({view, setView, globalSearch, setGlobalSearch, onSearchSubmit
 
   function handleChipClick(){
     setNotifOpen(false);
-    if(isAdmin){ setProfileOpen(o=>!o); }
-    else { onRequestLogin(); }
+    setProfileOpen(o=>!o);
   }
+  const firstName = adminUser?.name?.split(" ")[0] || (isAdmin ? "Admin" : "Viewer");
 
   return (
     <div className="header-shell">
       <header className="topbar">
         {!isAdmin && (
           <a className="brand-row" href={CONFIG.homeUrl}>
-            <div className="logo-mark">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="2.6"/><circle cx="17" cy="7" r="2.6"/><circle cx="12" cy="17" r="2.6"/><path d="M9 8.5 10.3 15M15 8.5 13.7 15"/></svg>
-            </div>
-            <div className="logo-text font-display">Eethal Learning</div>
+            <BrandLogo/>
           </a>
         )}
         <div className="search-box">
@@ -291,33 +191,39 @@ function TopHeader({view, setView, globalSearch, setGlobalSearch, onSearchSubmit
           )}
         </div>
         <div className="topbar-right">
-          <div ref={notifRef} style={{position:'relative'}}>
-            <button className="icon-btn" onClick={()=>{setNotifOpen(o=>!o);setProfileOpen(false);}}>
-              <I.Bell/>{unread>0 && <span className="badge-dot"/>}
+          {isAdmin && <div ref={notifRef} style={{position:'relative'}}>
+            <button className="icon-btn" aria-label={unread>0 ? `Notifications (${unread} new)` : "Notifications"}
+              onClick={()=>{ if(!notifOpen) onNotifOpen(); setNotifOpen(o=>!o); setProfileOpen(false); }}>
+              <I.Bell/>{unread>0 && <span className="badge-count">{unread>9?"9+":unread}</span>}
             </button>
             {notifOpen && (
               <div className="notif-panel">
-                <div className="notif-head">Notifications</div>
-                {notifications.map(n=>(
-                  <div key={n.id} className={"notif-item"+(n.unread?"":" read")}>
+                <div className="notif-head">Notifications {unread>0 && <span className="notif-new">{unread} new</span>}</div>
+                {notifications.length===0 ? (
+                  <div className="notif-empty">No notifications yet.</div>
+                ) : notifications.map(n=>(
+                  <button key={n.id} type="button" className={"notif-item notif-item--"+n.kind+(n.unread?"":" read")+(n.link?" is-link":"")}
+                    onClick={()=>{ if(n.link){ setNotifOpen(false); onNotifClick(n); } }}>
                     <div className="notif-dot"/>
-                    <div><div className="notif-text">{n.text}</div><div className="notif-time">{n.time}</div></div>
-                  </div>
+                    <div><div className="notif-text">{n.text}</div><div className="notif-time">{timeAgo(n.time)}</div></div>
+                  </button>
                 ))}
               </div>
             )}
-          </div>
+          </div>}
           <div ref={profRef} style={{position:'relative'}}>
             <button className="admin-chip" onClick={handleChipClick}>
-              <Avatar name={isAdmin ? (adminUser?.name || "Admin") : "Guest Viewer"} size={30} gradient={isAdmin?ADMIN_GRADIENT:undefined}/>
-              <span style={{fontSize:13,fontWeight:600}}>{isAdmin ? (adminUser?.name?.split(" ")[0] || "Admin") : "Sign In"}</span>
+              <Avatar name={adminUser?.name || (isAdmin ? "Admin" : "Viewer")} size={30} gradient={isAdmin?ADMIN_GRADIENT:undefined}/>
+              <span className="chip-name">
+                <span style={{fontSize:13,fontWeight:600}}>{firstName}</span>
+                <span className={"chip-role"+(isAdmin?" is-admin":"")}>{isAdmin ? "Admin" : "Viewer"}</span>
+              </span>
               <I.Chevron/>
             </button>
-            {profileOpen && isAdmin && (
-              <div className="dropdown-menu" style={{right:0,top:50,minWidth:190}}>
-                <button onClick={()=>setView('profile')}><I.Users style={{width:14,height:14}}/> Profile</button>
-                <div className="dropdown-divider"/>
-                <button className="danger" onClick={onLogout}><I.Logout style={{width:14,height:14}}/> Logout</button>
+            {profileOpen && (
+              <div className="dropdown-menu" style={{right:0,top:50,minWidth:210}}>
+                {adminUser?.email && <div className="dropdown-user">Signed in as <strong>{adminUser.email}</strong></div>}
+                <button className="danger" onClick={()=>{setProfileOpen(false);onSignOut();}}><I.Logout style={{width:14,height:14}}/> Sign Out</button>
               </div>
             )}
           </div>
@@ -336,8 +242,9 @@ function TopHeader({view, setView, globalSearch, setGlobalSearch, onSearchSubmit
   );
 }
 
-function MobileBottomNav({view,setView}){
+function MobileBottomNav({view,setView,isAdmin}){
   const items=[{key:"dashboard",label:"Home",icon:I.Home},{key:"professionals",label:"Professionals",icon:I.Users},{key:"students",label:"Students",icon:I.Grad}];
+  if(isAdmin) items.push({key:"entries",label:"Entries",icon:I.Inbox},{key:"enrollments",label:"Enrolls",icon:I.Form});
   return (
     <nav className="mobile-bottom-nav">
       {items.map(it=>(
@@ -350,19 +257,20 @@ function MobileBottomNav({view,setView}){
 }
 
 /* ============ DASHBOARD ============ */
-function StatCard({icon,color,bg,value,label}){
+function StatCard({icon,color,bg,value,label,onClick}){
   return (
-    <div className="stat-card">
+    <button type="button" className="stat-card stat-card--link" onClick={onClick} style={{"--stat-c":color}} aria-label={`${label}: ${value}. View all`}>
       <div className="stat-top">
         <div className="stat-icon" style={{background:bg,color:color}}>{icon}</div>
+        <span className="stat-go">View all <I.Arrow/></span>
       </div>
       <div className="stat-value">{value}</div>
       <div className="stat-label">{label}</div>
-    </div>
+    </button>
   );
 }
 
-function Dashboard({professionals,students,setView,openDetail}){
+function Dashboard({professionals,students,setView,openDetail,isAdmin,pendingCount}){
   // Three of each fills one row of the 3-column card grid.
   const recentPros = [...professionals].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,3);
   const recentStu = [...students].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,3);
@@ -370,10 +278,26 @@ function Dashboard({professionals,students,setView,openDetail}){
     <div>
       <div className="page-head">
         <div><h1 className="font-display">Dashboard</h1><p>Manage and discover professionals and students.</p></div>
+        {isAdmin && (
+          <button className="btn btn-primary new-entry-btn" onClick={()=>setView("entries")}>
+            <I.Inbox/> New Entry
+            {pendingCount>0 && <span className="new-entry-count">{pendingCount}</span>}
+          </button>
+        )}
       </div>
+      {isAdmin && pendingCount>0 && (
+        <button className="entry-callout" onClick={()=>setView("entries")}>
+          <span className="entry-callout-ic"><I.Inbox/></span>
+          <span className="entry-callout-tx">
+            <strong>{pendingCount} new {pendingCount===1?"entry is":"entries are"} waiting for review</strong>
+            <span>Approve them to add the details to Working Professionals or Students.</span>
+          </span>
+          <span className="entry-callout-go">Review <I.Arrow/></span>
+        </button>
+      )}
       <div className="stat-grid">
-        <StatCard icon={<I.Users/>} color="#5B5FEF" bg="#EEF0FF" value={professionals.length} label="Working Professionals"/>
-        <StatCard icon={<I.Grad/>} color="#0FA981" bg="#E4F7F1" value={students.length} label="Students"/>
+        <StatCard icon={<I.Users/>} color="#5B5FEF" bg="#EEF0FF" value={professionals.length} label="Working Professionals" onClick={()=>setView("professionals")}/>
+        <StatCard icon={<I.Grad/>} color="#0FA981" bg="#E4F7F1" value={students.length} label="Students" onClick={()=>setView("students")}/>
       </div>
 
       <div className="section-card">
@@ -460,18 +384,10 @@ function ProfessionalCard({p,onClick,onEdit,onDelete,isAdmin}){
   );
 }
 
-function FilterSelect({value,onChange,options,placeholder}){
-  return (
-    <select className="filter-select" value={value} onChange={e=>onChange(e.target.value)}>
-      <option value="">{placeholder}</option>
-      {options.map(o=><option key={o} value={o}>{o}</option>)}
-    </select>
-  );
-}
 
 function ProfessionalsPage({professionals,openDetail,openAdd,openEdit,openDelete,isAdmin}){
   const [search,setSearch]=useState("");
-  const [f,setF]=useState({district:"",experience:"",designation:"",company:"",education:""});
+  const [f,setF]=useState({district:"",experience:"",designation:"",company:"",education:"",marital:""});
   const [page,setPage]=useState(1);
   const pageSize=10;
 
@@ -491,18 +407,19 @@ function ProfessionalsPage({professionals,openDetail,openAdd,openEdit,openDelete
       const matchesDesig = !f.designation || sameText(p.designation,f.designation);
       const matchesCompany = !f.company || sameText(p.company,f.company);
       const matchesEdu = !f.education || sameText(p.education,f.education);
+      const matchesMar = matchesMarital(p.marital,f.marital);
       const exp = parseFloat(p.experience) || 0;
       const matchesExp = !f.experience || (
         f.experience==="0-2" ? exp<2 :
         f.experience==="2-5" ? (exp>=2 && exp<5) :
         f.experience==="5-8" ? (exp>=5 && exp<8) : exp>=8
       );
-      return matchesSearch && matchesDistrict && matchesDesig && matchesCompany && matchesEdu && matchesExp;
+      return matchesSearch && matchesDistrict && matchesDesig && matchesCompany && matchesEdu && matchesMar && matchesExp;
     });
   },[professionals,search,f]);
 
   const pageItems = filtered.slice(0,page*pageSize);
-  const resetFilters=()=>{setSearch("");setF({district:"",experience:"",designation:"",company:"",education:""});setPage(1);};
+  const resetFilters=()=>{setSearch("");setF({district:"",experience:"",designation:"",company:"",education:"",marital:""});setPage(1);};
   const hasNoData = professionals.length===0;
 
   return (
@@ -523,6 +440,7 @@ function ProfessionalsPage({professionals,openDetail,openAdd,openEdit,openDelete
           <FilterSelect value={f.designation} onChange={v=>{setF({...f,designation:v});setPage(1);}} options={filterOpts.designations} placeholder="Designation"/>
           <FilterSelect value={f.company} onChange={v=>{setF({...f,company:v});setPage(1);}} options={filterOpts.companies} placeholder="Company"/>
           <FilterSelect value={f.education} onChange={v=>{setF({...f,education:v});setPage(1);}} options={filterOpts.educations} placeholder="Education"/>
+          <FilterSelect value={f.marital} onChange={v=>{setF({...f,marital:v});setPage(1);}} options={MARITAL_FILTER_OPTS} placeholder="Marital Status"/>
           <button className="btn btn-secondary btn-sm" onClick={resetFilters}>Reset</button>
         </div>
       </div>
@@ -564,7 +482,7 @@ function StudentCard({s,onClick,onEdit,onDelete,isAdmin}){
 
 function StudentsPage({students,openDetail,openAdd,openEdit,openDelete,isAdmin}){
   const [search,setSearch]=useState("");
-  const [f,setF]=useState({gradYear:"",specialization:"",district:"",education:""});
+  const [f,setF]=useState({gradYear:"",specialization:"",district:"",education:"",marital:""});
   const [page,setPage]=useState(1);
   const pageSize=10;
 
@@ -584,12 +502,13 @@ function StudentsPage({students,openDetail,openAdd,openEdit,openDelete,isAdmin})
       const matchesSpec = !f.specialization || sameText(s.specialization,f.specialization);
       const matchesDistrict = !f.district || sameText(s.district,f.district);
       const matchesEdu = !f.education || sameText(s.education,f.education);
-      return matchesSearch && matchesYear && matchesSpec && matchesDistrict && matchesEdu;
+      const matchesMar = matchesMarital(s.marital,f.marital);
+      return matchesSearch && matchesYear && matchesSpec && matchesDistrict && matchesEdu && matchesMar;
     });
   },[students,search,f]);
 
   const pageItems = filtered.slice(0,page*pageSize);
-  const resetFilters=()=>{setSearch("");setF({gradYear:"",specialization:"",district:"",education:""});setPage(1);};
+  const resetFilters=()=>{setSearch("");setF({gradYear:"",specialization:"",district:"",education:"",marital:""});setPage(1);};
   const hasNoData = students.length===0;
 
   return (
@@ -609,6 +528,7 @@ function StudentsPage({students,openDetail,openAdd,openEdit,openDelete,isAdmin})
           <FilterSelect value={f.specialization} onChange={v=>{setF({...f,specialization:v});setPage(1);}} options={filterOpts.specializations} placeholder="Specialization"/>
           <FilterSelect value={f.district} onChange={v=>{setF({...f,district:v});setPage(1);}} options={filterOpts.districts} placeholder="Current District"/>
           <FilterSelect value={f.education} onChange={v=>{setF({...f,education:v});setPage(1);}} options={filterOpts.educations} placeholder="Education"/>
+          <FilterSelect value={f.marital} onChange={v=>{setF({...f,marital:v});setPage(1);}} options={MARITAL_FILTER_OPTS} placeholder="Marital Status"/>
           <button className="btn btn-secondary btn-sm" onClick={resetFilters}>Reset</button>
         </div>
       </div>
@@ -633,8 +553,8 @@ function StudentsPage({students,openDetail,openAdd,openEdit,openDelete,isAdmin})
 
 /* ============ GLOBAL SEARCH RESULTS ============ */
 const SEARCH_FIELDS = {
-  professional: ["name","company","designation","district","education","ctc","experience","email","mobile"],
-  student: ["name","specialization","education","district","gradYear","email","mobile"],
+  professional: ["name","company","designation","district","education","ctc","experience","email","mobile","batch"],
+  student: ["name","specialization","education","district","gradYear","email","mobile","batch"],
 };
 
 // Every word must match some field, so "associate madurai" finds Associates in
@@ -692,9 +612,6 @@ function SearchResultsPage({query,professionals,students,openDetail,openEdit,ope
 }
 
 /* ============ PROFILE DETAIL ============ */
-function DetailField({label,value}){
-  return <div className="detail-field"><div className="label">{label}</div><div className="value">{value||"\u2014"}</div></div>;
-}
 
 function ProfileDetailPage({type,data,onBack,onEdit,onDelete,isAdmin}){
   const isP = type==="professional";
@@ -718,6 +635,7 @@ function ProfileDetailPage({type,data,onBack,onEdit,onDelete,isAdmin}){
           <div className="ph-name-row">
             <h2 className="font-display">{data.name}</h2>
             {isP && data.verified && <I.CheckCircle style={{color:'#0FA981'}}/>}
+            <TypeChip type={type}/>
           </div>
           <div className="ph-role">{isP ? `${data.designation} | ${data.company}` : `${data.specialization} \u00b7 ${data.education}`}</div>
           <div className="ph-contacts">
@@ -736,6 +654,7 @@ function ProfileDetailPage({type,data,onBack,onEdit,onDelete,isAdmin}){
             <DetailField label="Mobile Number" value={"+91 "+data.mobile}/>
             <DetailField label="Email ID" value={data.email}/>
             <DetailField label="Current District" value={data.district}/>
+            <DetailField label="Batch No" value={data.batch}/>
             {isP ? (
               <>
                 <DetailField label="Total Years of Experience" value={data.experience+" years"}/>
@@ -771,26 +690,52 @@ function ProfileDetailPage({type,data,onBack,onEdit,onDelete,isAdmin}){
 }
 
 /* ============ ADD / EDIT FORM ============ */
-// Defined outside ProfileForm: a component created during render remounts its inputs on every keystroke.
-function Field({errors,field,label,required,children,span}){
+
+// The profile type picker: a labelled choice when adding, a fixed label when editing.
+const TYPE_OPTIONS = [
+  {key:"professional", icon:I.Users, hint:"Currently working at a company"},
+  {key:"student", icon:I.Grad, hint:"Studying or recently graduated"},
+];
+function TypePicker({type,setType,locked}){
   return (
-    <div className={"form-field"+(span?" full":"")+(errors[field]?" error":"")}>
-      <label>{label} {required && <span className="req">*</span>}</label>
-      {children}
-      {errors[field] && <span className="err-text">{errors[field]}</span>}
+    <div className="type-picker">
+      <div className="type-picker-label">Profile Type {!locked && <span className="req">*</span>}</div>
+      <div className="type-picker-options" role="radiogroup" aria-label="Profile Type">
+        {TYPE_OPTIONS.filter(o=>!locked || o.key===type).map(o=>(
+          <button key={o.key} type="button" role="radio" aria-checked={type===o.key} disabled={locked}
+            className={"type-option type-option--"+o.key+(type===o.key?" active":"")} onClick={()=>setType(o.key)}>
+            <span className="type-option-ic"><o.icon/></span>
+            <span className="type-option-tx">
+              <span className="type-option-title">{TYPE_LABEL[o.key]}</span>
+              <span className="type-option-hint">{o.hint}</span>
+            </span>
+            {!locked && <span className="type-option-check"><I.Check/></span>}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
+// mode: "add" and "edit" are the admin's forms; "entry" is the public Entry Form, where
+// onSave returns a promise that may reject with {fields} errors from the server.
 function ProfileForm({mode,initialType,initialData,onCancel,onSave}){
   const [type,setType]=useState(initialType||"professional");
-  const blankPro = {name:"",mobile:"",email:"",district:"",experience:"",company:"",designation:"",ctc:"",education:"",marital:"",address:""};
-  const blankStu = {name:"",mobile:"",email:"",district:"",specialization:"",gradYear:"",education:"",marital:"",address:""};
+  const blankPro = {name:"",mobile:"",email:"",batch:"",district:"",experience:"",company:"",designation:"",ctc:"",education:"",marital:"",address:""};
+  const blankStu = {name:"",mobile:"",email:"",batch:"",district:"",specialization:"",gradYear:"",education:"",marital:"",address:""};
   const [data,setData]=useState(initialData || (type==="professional"?blankPro:blankStu));
   const [errors,setErrors]=useState({});
+  const [busy,setBusy]=useState(false);
+  const [formError,setFormError]=useState("");
+  const isEntry = mode==="entry";
 
   useEffect(()=>{
-    if(!initialData){ setData(type==="professional"?blankPro:blankStu); setErrors({}); }
+    // Keep the common fields when switching type, so nobody has to retype their name.
+    if(!initialData){
+      const blank = type==="professional"?blankPro:blankStu;
+      setData(d=>({...Object.fromEntries(Object.keys(blank).map(k=>[k, k in d ? d[k] : blank[k]])), photo:d.photo||""}));
+      setErrors({});
+    }
   },[type]);
 
   function update(field,val){ setData(d=>({...d,[field]:val})); }
@@ -828,31 +773,39 @@ function ProfileForm({mode,initialType,initialData,onCancel,onSave}){
     return Object.keys(e).length===0;
   }
 
-  function submit(){
-    if(!validate()) return;
-    onSave(type,data);
+  async function submit(){
+    if(busy) return;
+    setFormError("");
+    if(!validate()){ setFormError("Please correct the highlighted fields."); return; }
+    setBusy(true);
+    try{
+      await onSave(type,data);
+    }catch(err){
+      if(err && err.fields) setErrors(err.fields);
+      setFormError((err && err.message) || "Couldn't submit the form. Please try again.");
+    }finally{
+      setBusy(false);
+    }
   }
-
 
   return (
     <div>
-      <div className="page-head">
-        <div><h1 className="font-display">{mode==="add" ? "Add Profile" : (type==="professional" ? "Edit Professional Profile" : "Edit Student Profile")}</h1>
-        <p>{mode==="add" ? "Choose a profile type and fill in the details below." : "Update the profile details below."}</p></div>
-      </div>
+      {!isEntry && (
+        <div className="page-head">
+          <div><h1 className="font-display">{mode==="add" ? "Add Profile" : (type==="professional" ? "Edit Professional Profile" : "Edit Student Profile")}</h1>
+          <p>{mode==="add" ? "Choose a profile type and fill in the details below." : "Update the profile details below."}</p></div>
+        </div>
+      )}
 
       <div className="section-card">
-        {mode==="add" && (
-          <div className="tab-toggle">
-            <button className={type==="professional"?"active":""} onClick={()=>setType("professional")}>Working Professional</button>
-            <button className={type==="student"?"active":""} onClick={()=>setType("student")}>Student</button>
-          </div>
-        )}
+        <TypePicker type={type} setType={setType} locked={mode==="edit"}/>
 
+        <div className="form-section-title">{TYPE_LABEL[type]} Details</div>
         <div className="form-grid">
           <Field errors={errors} field="name" label="Full Name" required><input value={data.name} onChange={e=>update("name",e.target.value)} placeholder="e.g. Karthik R"/></Field>
           <Field errors={errors} field="mobile" label="Mobile Number" required><input value={data.mobile} onChange={e=>update("mobile",e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="10-digit number"/></Field>
           <Field errors={errors} field="email" label="Email ID" required><input value={data.email} onChange={e=>update("email",e.target.value)} placeholder="name@example.com"/></Field>
+          <Field errors={errors} field="batch" label="Batch No"><input value={data.batch||""} onChange={e=>update("batch",e.target.value)} placeholder="e.g. Batch 12"/></Field>
           <Field errors={errors} field="district" label="Current District" required>
             <select value={data.district} onChange={e=>update("district",e.target.value)}>
               <option value="">Select district</option>
@@ -918,13 +871,257 @@ function ProfileForm({mode,initialType,initialData,onCancel,onSave}){
             </select>
           </Field>
           <Field errors={errors} field="address" label="Current Address" span><textarea rows="3" value={data.address} onChange={e=>update("address",e.target.value)} placeholder="Door No, Street, Area, District, State"/></Field>
+          {/* Left empty by people; bots fill it in. */}
+          {isEntry && <input className="hp-field" tabIndex="-1" autoComplete="off" aria-hidden="true" value={data.website||""} onChange={e=>update("website",e.target.value)}/>}
         </div>
 
+        {formError && <div className="form-error-banner"><I.Alert/> {formError}</div>}
         <div className="form-actions">
-          <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-          <button className="btn btn-primary" onClick={submit}>{mode==="add" ? "Save Profile" : "Save Changes"}</button>
+          {onCancel && <button className="btn btn-secondary" onClick={onCancel} disabled={busy}>Cancel</button>}
+          <button className="btn btn-primary" onClick={submit} disabled={busy}>
+            {isEntry ? <><I.Send/> {busy ? "Submitting..." : "Submit"}</> : (busy ? "Saving..." : mode==="add" ? "Save Profile" : "Save Changes")}
+          </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ============ PUBLIC ENTRY FORM (/entry-form/) ============ */
+// Standalone page: people submit their own details, which wait for an admin's approval.
+function EntryFormApp(){
+  const [submitted,setSubmitted]=useState(null); // {name, type} once sent
+  const [formKey,setFormKey]=useState(0);
+
+  async function handleSubmit(type,data){
+    const res = await api("entries", {method:"POST", body: JSON.stringify({...data, type})});
+    const body = await res.json().catch(()=>({}));
+    if(!res.ok) throw {message: body.message || "Couldn't submit the form. Please try again.", fields: body.data && body.data.fields};
+    setSubmitted({name:data.name, type});
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  return (
+    <div className="entry-page">
+      <header className="entry-topbar">
+        <a className="brand-row" href={CONFIG.homeUrl}>
+          <BrandLogo/>
+        </a>
+      </header>
+
+      <section className="entry-hero">
+        <span className="entry-hero-pill"><I.Shield style={{width:14,height:14}}/> Talent Directory</span>
+        <h1 className="font-display">Join the Eethal Learning Directory</h1>
+        <p>Please fill in your details below so we can keep your Eethal Learning profile up to date.</p>
+        {/* <ol className="entry-steps">
+          <li><span>1</span> Fill in your details</li>
+          <li><span>2</span> Admin reviews them</li>
+          <li><span>3</span> Your profile goes live</l
+        </ol> */}
+      </section>
+
+      <main className="entry-main">
+        {submitted ? (
+          <div className="section-card entry-success">
+            <div className="entry-success-ic"><I.Check/></div>
+            <h2 className="font-display">Thank you, {submitted.name.split(" ")[0]}!</h2>
+            <p>Your <>{TYPE_LABEL[submitted.type]}</> details have been submitted successfully.</p>
+            <button className="btn btn-secondary" onClick={()=>{setSubmitted(null);setFormKey(k=>k+1);}}><I.Plus/> Submit Another Entry</button>
+          </div>
+        ) : (
+          <ProfileForm key={formKey} mode="entry" initialType="professional" onSave={handleSubmit}/>
+        )}
+      </main>
+    </div>
+  );
+}
+
+/* ============ NEW ENTRIES (admin review) ============ */
+const ENTRY_TABS = [
+  {key:"pending", label:"Pending"},
+  {key:"approved", label:"Approved"},
+  {key:"rejected", label:"Rejected"},
+  {key:"all", label:"All"},
+];
+
+
+function StatusChip({status}){
+  return <span className={"status-chip status-chip--"+status}>{status.charAt(0).toUpperCase()+status.slice(1)}</span>;
+}
+
+function ConfirmModal({tone,title,message,confirmLabel,busy,onCancel,onConfirm}){
+  return (
+    <div className="modal-overlay" onClick={busy?undefined:onCancel}>
+      <div className="modal-card" onClick={e=>e.stopPropagation()}>
+        <div className={"modal-icon"+(tone==="approve"?" modal-icon--approve":"")}>{tone==="approve" ? <I.Check/> : <I.Alert/>}</div>
+        <h3>{title}</h3>
+        <p>{message}</p>
+        <div className="modal-actions">
+          <button className="btn btn-secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button className={"btn "+(tone==="approve"?"btn-success":"btn-danger")} onClick={onConfirm} disabled={busy}>{busy ? "Please wait..." : confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EntryDetail({entry,onBack,onReview,onDelete,openProfile}){
+  const isP = entry.type==="professional";
+  const pending = entry.status==="pending";
+  return (
+    <div>
+      <div className="detail-top">
+        <button className="back-btn" onClick={onBack}><I.Back/> Back to Entries</button>
+        {pending ? (
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn btn-reject btn-sm" onClick={()=>onReview(entry,"reject")}><I.Close/> Reject</button>
+            <button className="btn btn-success btn-sm" onClick={()=>onReview(entry,"approve")}><I.Check/> Approve</button>
+          </div>
+        ) : (
+          <button className="btn btn-secondary btn-sm" style={{color:'var(--red)'}} onClick={()=>onDelete(entry)}><I.Trash/> Delete Entry</button>
+        )}
+      </div>
+
+      {entry.duplicate && pending && (
+        <div className="entry-warning">
+          <I.Alert/>
+          <div>A {TYPE_LABEL[entry.duplicate.type]} profile with this email already exists: <button className="link-btn" onClick={()=>openProfile(entry.duplicate.type,entry.duplicate.id)}>{entry.duplicate.name}</button>. Approving will add a second profile.</div>
+        </div>
+      )}
+      {!pending && (
+        <div className={"entry-review-note entry-review-note--"+entry.status}>
+          {entry.status==="approved" ? <I.CheckCircle/> : <I.Close/>}
+          <div>
+            {entry.status==="approved" ? "Approved" : "Rejected"}{entry.reviewedBy && <> by <strong>{entry.reviewedBy}</strong></>}{entry.reviewedAt && <> on {formatDate(entry.reviewedAt)}</>}.
+            {entry.status==="approved" && entry.profileId>0 && <> <button className="link-btn" onClick={()=>openProfile(entry.type,entry.profileId)}>View profile</button></>}
+          </div>
+        </div>
+      )}
+
+      <div className="profile-header-card">
+        <Avatar name={entry.name} size={110} photo={entry.photo}/>
+        <div>
+          <div className="ph-name-row">
+            <h2 className="font-display">{entry.name}</h2>
+            <TypeChip type={entry.type}/>
+            <StatusChip status={entry.status}/>
+          </div>
+          <div className="ph-role">{isP ? [entry.designation,entry.company].filter(Boolean).join(" | ") : [entry.specialization,entry.education].filter(Boolean).join(" · ")}</div>
+          <div className="ph-contacts">
+            <div className="ph-contact-item"><I.Pin/> {entry.district}, Tamil Nadu</div>
+            <div className="ph-contact-item"><I.Mail/> {entry.email}</div>
+            <div className="ph-contact-item"><I.Phone/> +91 {entry.mobile}</div>
+            <div className="ph-contact-item"><I.Clock/> Submitted {formatDate(entry.createdAt)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section-card">
+        <div className="section-head"><h3>{TYPE_LABEL[entry.type]} Details</h3></div>
+        <div className="detail-grid">
+          <div>
+            <DetailField label="Full Name" value={entry.name}/>
+            <DetailField label="Mobile Number" value={"+91 "+entry.mobile}/>
+            <DetailField label="Email ID" value={entry.email}/>
+            <DetailField label="Batch No" value={entry.batch}/>
+            <DetailField label="Current District" value={entry.district}/>
+            {isP
+              ? <DetailField label="Total Years of Experience" value={entry.experience && entry.experience+" years"}/>
+              : <DetailField label="Specialization" value={entry.specialization}/>}
+            <DetailField label="Marital Status" value={entry.marital || "NA"}/>
+          </div>
+          <div>
+            {isP ? (
+              <>
+                <DetailField label="Current Company" value={entry.company}/>
+                <DetailField label="Current Designation" value={entry.designation}/>
+                <DetailField label="Current CTC" value={entry.ctc}/>
+              </>
+            ) : (
+              <DetailField label="Year of Graduation" value={entry.gradYear}/>
+            )}
+            <DetailField label="Education Qualification" value={entry.education}/>
+            <DetailField label="Current Address" value={entry.address}/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EntriesPage({entries,loading,onReload,onReview,onDelete,openProfile}){
+  // ?view=entries&tab=approved (or rejected, all) opens that tab directly.
+  const [tab,setTab]=useState(()=>{
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return ENTRY_TABS.some(x=>x.key===t) ? t : "pending";
+  });
+  const [selectedId,setSelectedId]=useState(null);
+  // The server leaves out deleted entries; this filter only covers ones deleted since the list loaded.
+  const live = useMemo(()=>entries.filter(e=>!e.deleted),[entries]);
+  const counts = useMemo(()=>{
+    const c = {pending:0,approved:0,rejected:0,all:live.length};
+    live.forEach(e=>{ c[e.status]=(c[e.status]||0)+1; });
+    return c;
+  },[live]);
+  const shown = tab==="all" ? live : live.filter(e=>e.status===tab);
+  const selected = live.find(e=>e.id===selectedId);
+
+  if(selected){
+    return <EntryDetail entry={selected} onBack={()=>setSelectedId(null)} onReview={onReview}
+      onDelete={e=>onDelete(e,()=>setSelectedId(null))} openProfile={openProfile}/>;
+  }
+
+  return (
+    <div>
+      <div className="page-head">
+        <div><h1 className="font-display">New Entries</h1><p>Review details submitted through the Entry Form. Approved entries are added to the directory.</p></div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <button className="btn btn-secondary" onClick={onReload} disabled={loading}>{loading ? "Refreshing..." : "Refresh"}</button>
+          {CONFIG.pages.entry && <a className="btn btn-primary" href={CONFIG.pages.entry} target="_blank" rel="noopener">Open Entry Form <I.Arrow/></a>}
+        </div>
+      </div>
+
+      <div className="entry-tabs" role="tablist">
+        {ENTRY_TABS.map(t=>(
+          <button key={t.key} role="tab" aria-selected={tab===t.key} className={"entry-tab"+(tab===t.key?" active":"")} onClick={()=>setTab(t.key)}>
+            {t.label} <span className={"entry-tab-count entry-tab-count--"+t.key}>{counts[t.key]||0}</span>
+          </button>
+        ))}
+      </div>
+
+      {shown.length===0 ? (
+        <EmptyState title={tab==="pending" ? "No entries waiting for review" : "Nothing here yet"}
+          subtitle={tab==="pending" ? "New submissions from the Entry Form will show up here." : "Entries will appear here once they're reviewed."}/>
+      ) : (
+        <div className="entry-list">
+          {shown.map(e=>(
+            <div key={e.id} role="button" tabIndex="0" className={"entry-row entry-row--"+e.status} onClick={()=>setSelectedId(e.id)}
+              onKeyDown={ev=>{ if(ev.target===ev.currentTarget && (ev.key==="Enter"||ev.key===" ")){ ev.preventDefault(); setSelectedId(e.id); } }}>
+              <Avatar name={e.name} size={46} photo={e.photo}/>
+              <div className="entry-row-main">
+                <div className="entry-row-name">{e.name} {e.duplicate && e.status==="pending" && <span className="entry-dup" title="A profile with this email already exists">Possible duplicate</span>}</div>
+                <div className="entry-row-meta">
+                  <span><I.Mail/> {e.email}</span>
+                  <span><I.Pin/> {e.district}</span>
+                  {e.batch && <span><I.Hash/> Batch {e.batch}</span>}
+                </div>
+              </div>
+              <div className="entry-row-side">
+                <TypeChip type={e.type}/>
+                <span className="entry-row-date"><I.Clock/> {formatDate(e.createdAt)}</span>
+              </div>
+              <div className="entry-row-status">
+                {e.status==="pending"
+                  ? <div className="entry-row-actions" onClick={ev=>ev.stopPropagation()}>
+                      <button className="btn btn-reject btn-sm" title="Reject" aria-label={"Reject "+e.name} onClick={()=>onReview(e,"reject")}><I.Close/></button>
+                      <button className="btn btn-success btn-sm" onClick={()=>onReview(e,"approve")}><I.Check/> Approve</button>
+                    </div>
+                  : <StatusChip status={e.status}/>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -947,6 +1144,7 @@ function DeleteModal({name,onCancel,onConfirm}){
 }
 
 /* ============ ADMIN LOGIN MODAL ============ */
+// The sign-in gate in front of the whole Talent Pool. It can't be dismissed; Cancel is "Back to Home".
 function LoginModal({onCancel,onSubmit}){
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
@@ -964,11 +1162,11 @@ function LoginModal({onCancel,onSubmit}){
 
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <div className="modal-overlay is-locked">
       <div className="modal-card" onClick={e=>e.stopPropagation()}>
         <div className="modal-icon" style={{background:'#EEF0FF',color:'var(--indigo)'}}><I.Shield/></div>
-        <h3>Admin Sign In</h3>
-        <p>Sign in with an admin account to add or delete profiles.</p>
+        <h3>Sign in to Talent Pool</h3>
+        <p>Please sign in to view working professionals and students.</p>
         <div className="login-field">
           <label>Email Address</label>
           <input value={email} onChange={e=>{setEmail(e.target.value);setError("");}}
@@ -1011,7 +1209,7 @@ function LoginModal({onCancel,onSubmit}){
           {error}
         </p>}
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onCancel} disabled={loading}>Cancel</button>
+          <button className="btn btn-secondary" onClick={onCancel} disabled={loading}>Back to Home</button>
           <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
         </div>
       </div>
@@ -1020,17 +1218,33 @@ function LoginModal({onCancel,onSubmit}){
 }
 
 /* ============ APP ============ */
+// The admin emails link to the dashboard with ?view=entries or ?view=enrollments.
+const LINKED_VIEW = ["entries","enrollments"].find(v=>v===new URLSearchParams(window.location.search).get("view"));
+
 function App(){
-  const [role,setRole]=useState(CONFIG.user ? "admin" : "viewer"); // "admin" | "viewer"
+  // "guest": not signed in (sign-in screen). "viewer": Talent Pool Viewer role, read only.
+  // "admin": Talent Directory Admin / Administrator role (add, edit, delete, review entries).
+  const [role,setRole]=useState(CONFIG.admin ? "admin" : CONFIG.user ? "viewer" : "guest");
   const isAdmin = role==="admin";
+  const signedIn = role!=="guest";
   const [adminUser,setAdminUser]=useState(CONFIG.user);
-  const [loginOpen,setLoginOpen]=useState(false);
-  const [view,setView]=useState(CONFIG.view || "dashboard");
+  const [view,setView]=useState(LINKED_VIEW && CONFIG.admin ? LINKED_VIEW : (CONFIG.view || "dashboard"));
+  const [enrollments,setEnrollments]=useState([]);
+  const [enrollLoading,setEnrollLoading]=useState(false);
+  const [deleteEnrollTarget,setDeleteEnrollTarget]=useState(null); // {app, after}
+  const [entries,setEntries]=useState([]);
+  const [entriesLoading,setEntriesLoading]=useState(false);
+  const [reviewTarget,setReviewTarget]=useState(null); // {entry, decision}
+  const [deleteEntryTarget,setDeleteEntryTarget]=useState(null); // {entry, after}
+  const [reviewBusy,setReviewBusy]=useState(false);
+  const pendingCount = entries.filter(e=>e.status==="pending").length;
   const [professionals,setProfessionals]=useState([]);
   const [students,setStudents]=useState([]);
   const [dataLoading,setDataLoading]=useState(true);
   const [dataError,setDataError]=useState("");
-  const [notifications]=useState(NOTIFICATIONS);
+  const [notifItems,setNotifItems]=useState([]);
+  const [notifSeen,setNotifSeen]=useState(readNotifSeen); // newest time already seen in this browser
+  const [panelSeen,setPanelSeen]=useState(""); // keeps dots on the new items while the panel is open
 
   const [detail,setDetail]=useState(null); // {type, id}
   const [formState,setFormState]=useState(null); // {mode, type, data}
@@ -1055,8 +1269,129 @@ function App(){
       setDataLoading(false);
     }
   }
-  useEffect(()=>{ loadData(); },[]);
+  // The Talent Pool is sign-in only: load profiles once signed in, forget them on sign out.
+  useEffect(()=>{
+    if(signedIn) loadData();
+    else { setProfessionals([]); setStudents([]); setDataLoading(false); }
+  },[signedIn]);
 
+  async function loadEntries(){
+    setEntriesLoading(true);
+    try{
+      const res = await api("entries");
+      if(!res.ok) throw new Error("entries failed");
+      setEntries(await res.json());
+    }catch(err){
+      setToast("Couldn't load new entries. Please try again.");
+    }finally{
+      setEntriesLoading(false);
+    }
+  }
+  // Admins see the pending count in the sidebar and on the Dashboard.
+  useEffect(()=>{ if(isAdmin) loadEntries(); else setEntries([]); },[isAdmin]);
+
+  async function loadEnrollments(){
+    setEnrollLoading(true);
+    try{
+      const res = await api("enrollments");
+      if(!res.ok) throw new Error("enrollments failed");
+      setEnrollments(await res.json());
+    }catch(err){
+      setToast("Couldn't load enrollments. Please try again.");
+    }finally{
+      setEnrollLoading(false);
+    }
+  }
+  // Loaded when an admin first opens Enrollments.
+  useEffect(()=>{ if(isAdmin && view==="enrollments") loadEnrollments(); },[isAdmin, view==="enrollments"]);
+  useEffect(()=>{ if(!isAdmin) setEnrollments([]); },[isAdmin]);
+
+  async function confirmDeleteEnrollment(){
+    const {app,after}=deleteEnrollTarget;
+    setReviewBusy(true);
+    try{
+      const res = await api("enrollments/"+app.id, {method:"DELETE"});
+      if(!res.ok) throw new Error("delete failed");
+      setEnrollments(list=>list.filter(a=>a.id!==app.id));
+      if(after) after();
+      setToast("Application deleted.");
+    }catch(err){
+      setToast("Couldn't delete the application. Check the server connection.");
+    }finally{
+      setReviewBusy(false);
+      setDeleteEnrollTarget(null);
+    }
+  }
+
+  async function loadNotifications(){
+    if(!isAdmin) return;
+    try{
+      const res = await api("notifications");
+      if(res.ok) setNotifItems(await res.json());
+    }catch(err){} // The bell just keeps its last list.
+  }
+  // Admins only (viewers don't get a bell). Refreshed every minute.
+  useEffect(()=>{
+    if(!isAdmin){ setNotifItems([]); return; }
+    loadNotifications();
+    const t = setInterval(loadNotifications, 60000);
+    return ()=>clearInterval(t);
+  },[role]);
+  const isNewer = (time,seen) => !seen || new Date(time) > new Date(seen);
+  const notifications = notifItems.map(n=>({...n, unread: isNewer(n.time, notifOpen ? panelSeen : notifSeen)}));
+  function handleNotifOpen(){
+    setPanelSeen(notifSeen);
+    const newest = notifItems[0] && notifItems[0].time;
+    if(newest){ setNotifSeen(newest); writeNotifSeen(newest); }
+  }
+  function handleNotifClick(n){
+    if(n.link.type==="entries" || n.link.type==="enrollments"){ if(isAdmin) changeView(n.link.type); return; }
+    const list = n.link.type==="professional" ? professionals : students;
+    if(list.some(p=>p.id===n.link.id)) openDetail(n.link.type, n.link.id);
+    else setToast("This profile is no longer in the directory.");
+  }
+
+  async function confirmReview(){
+    const {entry,decision}=reviewTarget;
+    setReviewBusy(true);
+    try{
+      const res = await api("entries/"+entry.id+"/"+decision, {method:"POST"});
+      const body = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(body.message || "review failed");
+      setEntries(list=>list.map(e=>e.id===body.entry.id ? body.entry : e));
+      if(body.profile){
+        if(entry.type==="professional") setProfessionals(list=>[body.profile,...list]);
+        else setStudents(list=>[body.profile,...list]);
+      }
+      loadNotifications();
+      setToast(decision==="approve"
+        ? `${entry.name} was added to ${entry.type==="professional"?"Working Professionals":"Students"}.`
+        : `${entry.name}'s entry was rejected.`);
+    }catch(err){
+      setToast(err.message && err.message!=="review failed" ? err.message : "Couldn't update the entry. Check the server connection.");
+    }finally{
+      setReviewBusy(false);
+      setReviewTarget(null);
+    }
+  }
+
+  async function confirmDeleteEntry(){
+    const {entry,after}=deleteEntryTarget;
+    setReviewBusy(true);
+    try{
+      const res = await api("entries/"+entry.id, {method:"DELETE"});
+      if(!res.ok) throw new Error("delete failed");
+      setEntries(list=>list.filter(e=>e.id!==entry.id));
+      if(after) after();
+      loadNotifications();
+      setToast("Entry deleted.");
+    }catch(err){
+      setToast("Couldn't delete the entry. Check the server connection.");
+    }finally{
+      setReviewBusy(false);
+      setDeleteEntryTarget(null);
+    }
+  }
   // Dashboard, Working Professionals and Students each have their own WordPress page URL.
   const changeView = useCallback((v)=>{
     setView(v); setDetail(null); setFormState(null);
@@ -1093,6 +1428,7 @@ function App(){
   const openEdit = useCallback((type,item)=>{ setFormState({mode:"edit", type, data:item}); setDetail(null); }, []);
   const openDelete = useCallback((type,item)=>{ setDeleteTarget({type,item}); }, []);
 
+  // The account's role decides admin or viewer.
   async function handleLoginSubmit(email,password){
     try{
       const res = await api("auth/login", {
@@ -1101,23 +1437,20 @@ function App(){
       });
       const data = await res.json().catch(()=>({}));
       if(!res.ok) return {success:false, error: data.message || "Incorrect email or password."};
-      restNonce = data.nonce;
-      setRole("admin"); setAdminUser({name:data.name, email:data.email}); setLoginOpen(false);
+      setRestNonce(data.nonce);
+      setAdminUser({name:data.name, email:data.email});
+      setRole(data.admin ? "admin" : "viewer");
+      if(data.admin && LINKED_VIEW) changeView(LINKED_VIEW);
       setToast("Signed in as "+data.name.split(" ")[0]+".");
       return {success:true};
     }catch(err){
       return {success:false, error:"Couldn't reach the server. Please try again."};
     }
   }
-  async function handleLogout(){
-    try{
-      const res = await api("auth/logout", {method:"POST"});
-      const data = await res.json().catch(()=>({}));
-      if(data.nonce) restNonce = data.nonce;
-    }catch(err){}
-    setRole("viewer"); setAdminUser(null); setProfileOpen(false);
-    changeView("dashboard");
-    setToast("Signed out.");
+  // Sign out completely and go back to the home page.
+  async function handleSignOut(){
+    try{ await api("auth/logout", {method:"POST"}); }catch(err){}
+    window.location.href = CONFIG.homeUrl;
   }
 
   async function handleSave(type,data){
@@ -1131,6 +1464,7 @@ function App(){
         const record = await res.json();
         if(type==="professional") setProfessionals(list=>[record,...list]);
         else setStudents(list=>[record,...list]);
+        loadNotifications();
         setToast("Profile added successfully.");
       } else {
         const res = await api(endpoint+"/"+data.id, {
@@ -1140,6 +1474,7 @@ function App(){
         const record = await res.json();
         if(type==="professional") setProfessionals(list=>list.map(p=>p.id===record.id?record:p));
         else setStudents(list=>list.map(s=>s.id===record.id?record:s));
+        loadNotifications();
         setToast("Profile updated successfully.");
         if(detail && detail.id===record.id) setDetail({type,id:record.id});
       }
@@ -1159,6 +1494,7 @@ function App(){
       else setStudents(list=>list.filter(s=>s.id!==item.id));
       setDeleteTarget(null);
       if(detail && detail.id===item.id) setDetail(null);
+      loadNotifications();
       setToast("Profile deleted successfully.");
     }catch(err){
       setDeleteTarget(null);
@@ -1195,7 +1531,15 @@ function App(){
       onDelete={()=>openDelete(detail.type,detailData)}
       isAdmin={isAdmin}/>;
   } else if(view==="dashboard"){
-    mainContent = <Dashboard professionals={professionals} students={students} setView={changeView} openDetail={openDetail}/>;
+    mainContent = <Dashboard professionals={professionals} students={students} setView={changeView} openDetail={openDetail} isAdmin={isAdmin} pendingCount={pendingCount}/>;
+  } else if(view==="entries" && isAdmin){
+    mainContent = <EntriesPage entries={entries} loading={entriesLoading} onReload={loadEntries}
+      onReview={(entry,decision)=>setReviewTarget({entry,decision})}
+      onDelete={(entry,after)=>setDeleteEntryTarget({entry,after})}
+      openProfile={openDetail}/>;
+  } else if(view==="enrollments" && isAdmin){
+    mainContent = <EnrollmentsPage items={enrollments} loading={enrollLoading} onReload={loadEnrollments}
+      onDelete={(app,after)=>setDeleteEnrollTarget({app,after})}/>;
   } else if(view==="professionals"){
     mainContent = <ProfessionalsPage professionals={professionals} openDetail={openDetail} openAdd={openAdd} openEdit={(t,i)=>openEdit(t,i)} openDelete={(t,i)=>openDelete(t,i)} isAdmin={isAdmin}/>;
   } else if(view==="students"){
@@ -1211,22 +1555,53 @@ function App(){
     );
   }
 
+  // Sign-in gate: nothing in the Talent Pool shows until an admin signs in.
+  if(!signedIn){
+    return (
+      <div className="login-shell login-gate">
+        <a className="login-gate-brand" href={CONFIG.homeUrl}><BrandLogo onDark/></a>
+        <LoginModal onCancel={()=>{ window.location.href = CONFIG.homeUrl; }} onSubmit={handleLoginSubmit}/>
+        <Toast message={toast} onClose={()=>setToast("")}/>
+      </div>
+    );
+  }
+
   return (
     <div className={"app-shell"+(isAdmin?" with-sidebar":"")}>
-      {isAdmin && <Sidebar view={view} setView={changeView} onLogout={handleLogout}/>}
+      {isAdmin && <Sidebar view={view} setView={changeView} onSignOut={handleSignOut} pendingCount={pendingCount}/>}
       <div className="main-area">
         <TopHeader view={view} setView={changeView} globalSearch={globalSearch} setGlobalSearch={handleSearchChange} onSearchSubmit={handleSearchSubmit}
           notifOpen={notifOpen} setNotifOpen={setNotifOpen} profileOpen={profileOpen} setProfileOpen={setProfileOpen}
-          notifications={notifications} isAdmin={isAdmin} adminUser={adminUser}
-          onRequestLogin={()=>setLoginOpen(true)} onLogout={handleLogout}/>
+          notifications={notifications} onNotifOpen={handleNotifOpen} onNotifClick={handleNotifClick} isAdmin={isAdmin} adminUser={adminUser}
+          onSignOut={handleSignOut}/>
         <main className="content">{mainContent}</main>
       </div>
-      <MobileBottomNav view={view} setView={changeView}/>
+      <MobileBottomNav view={view} setView={changeView} isAdmin={isAdmin}/>
       {deleteTarget && <DeleteModal name={deleteTarget.item.name} onCancel={()=>setDeleteTarget(null)} onConfirm={confirmDelete}/>}
-      {loginOpen && <LoginModal onCancel={()=>setLoginOpen(false)} onSubmit={handleLoginSubmit}/>}
+      {reviewTarget && (reviewTarget.decision==="approve"
+        ? <ConfirmModal tone="approve" title="Approve Entry?" busy={reviewBusy} confirmLabel="Approve & Add"
+            message={<><strong>{reviewTarget.entry.name}</strong> will be added to the {reviewTarget.entry.type==="professional"?"Working Professionals":"Students"} list.</>}
+            onCancel={()=>setReviewTarget(null)} onConfirm={confirmReview}/>
+        : <ConfirmModal tone="reject" title="Reject Entry?" busy={reviewBusy} confirmLabel="Reject Entry"
+            message={<><strong>{reviewTarget.entry.name}</strong>'s details won't be added to the directory. You can still see the entry under Rejected.</>}
+            onCancel={()=>setReviewTarget(null)} onConfirm={confirmReview}/>)}
+      {deleteEntryTarget && <ConfirmModal tone="reject" title="Delete Entry?" busy={reviewBusy} confirmLabel="Delete Entry"
+        message={<><strong>{deleteEntryTarget.entry.name}</strong>'s entry will be removed from this list. Any profile created from it stays in the directory.</>}
+        onCancel={()=>setDeleteEntryTarget(null)} onConfirm={confirmDeleteEntry}/>}
+      {deleteEnrollTarget && <ConfirmModal tone="reject" title="Delete Application?" busy={reviewBusy} confirmLabel="Delete Application"
+        message={<><strong>{deleteEnrollTarget.app.name}</strong>'s application will be removed from Enrollments.</>}
+        onCancel={()=>setDeleteEnrollTarget(null)} onConfirm={confirmDeleteEnrollment}/>}
       <Toast message={toast} onClose={()=>setToast("")}/>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+// Back/Forward can restore a frozen copy of this page from before the visitor signed in
+// or out; load it fresh so the sign-in state is current.
+// The public forms (Entry Form, Enroll Now) don't depend on sign-in.
+const PUBLIC_VIEW = CONFIG.view==="entry" || CONFIG.view==="enroll";
+window.addEventListener("pageshow", e=>{ if(e.persisted && !PUBLIC_VIEW) window.location.reload(); });
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  CONFIG.view==="entry" ? <EntryFormApp/> : CONFIG.view==="enroll" ? <EnrollFormApp/> : <App/>
+);

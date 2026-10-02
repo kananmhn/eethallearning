@@ -21,7 +21,7 @@ if ( '' === $btn2_url && $email ) {
 				<div class="hero-btns reveal">
 					<?php if ( eethal_opt( 'cta_btn' ) ) : ?>
 						<a href="<?php echo eethal_button_url( 'cta_btn_url' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>"
-							target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+							<?php echo eethal_link_target( eethal_button_url( 'cta_btn_url' ) ); // phpcs:ignore WordPress.Security.EscapeOutput ?> class="btn btn-primary btn-lg">
 							<?php eethal_the_opt( 'cta_btn' ); ?>
 						</a>
 					<?php endif; ?>
@@ -34,8 +34,8 @@ if ( '' === $btn2_url && $email ) {
 			</div>
 
 			<div class="nav-col">
-				<div class="logo" style="margin-bottom:1.5rem">
-					<span style="color:var(--white);font-weight:800;font-size:1.4rem"><?php eethal_the_opt( 'cta_brand' ); ?></span>
+				<div class="logo" style="margin-bottom:1.5rem;">
+					<span style="color:var(--white);font-weight:800;font-size:1.4rem;text-align:center;"><?php eethal_the_opt( 'cta_brand' ); ?></span>
 				</div>
 				<?php if ( $phone ) : ?>
 					<p style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-bottom:1rem">

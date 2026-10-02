@@ -5,9 +5,12 @@
  * Profiles are stored as two private post types. The React directory app is
  * mounted on the Dashboard, Working Professionals and Students pages (which use
  * template-talent-directory.php) and talks to the REST routes under
- * /wp-json/eethal/v1/. Only users with the manage_talent_directory capability
- * (administrators and the Talent Directory Admin role) can sign in to the app
- * and add, edit or delete profiles.
+ * /wp-json/eethal/v1/.
+ *
+ * Two levels of access, decided by the user's role:
+ * - Viewer (Talent Pool Viewer role, view_talent_directory): can see profiles, nothing else.
+ * - Admin (Talent Directory Admin and Administrator roles, manage_talent_directory):
+ *   can do everything as soon as they sign in.
  *
  * @package Eethal_Learning
  */
@@ -16,9 +19,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EETHAL_TD_VERSION', '1' );
+define( 'EETHAL_TD_VERSION', '2' );
 define( 'EETHAL_TD_TEMPLATE', 'template-talent-directory.php' );
 define( 'EETHAL_TD_CAP', 'manage_talent_directory' );
+define( 'EETHAL_TD_VIEW_CAP', 'view_talent_directory' );
+// Bump when eethal_td_views() gains a page, so existing sites create it.
+define( 'EETHAL_TD_PAGES_VERSION', '3' );
 
 /**
  * The app's three top-level views and the pages that host them.
@@ -38,6 +44,16 @@ function eethal_td_views() {
 		'students'      => array(
 			'slug'  => 'students',
 			'title' => __( 'Students', 'eethal-learning' ),
+		),
+		// Public form where people submit their own details for admin approval.
+		'entry'         => array(
+			'slug'  => 'entry-form',
+			'title' => __( 'Entry Form', 'eethal-learning' ),
+		),
+		// Public course application form behind every "Enroll Now" button (inc/enrollments.php).
+		'enroll'        => array(
+			'slug'  => 'enroll',
+			'title' => __( 'Enroll Now', 'eethal-learning' ),
 		),
 	);
 }
@@ -59,7 +75,7 @@ function eethal_td_post_type( $type ) {
  * @return string[]
  */
 function eethal_td_fields( $type ) {
-	$common = array( 'mobile', 'email', 'district', 'education', 'address', 'photo', 'marital' );
+	$common = array( 'mobile', 'email', 'district', 'education', 'address', 'photo', 'marital', 'batch' );
 	if ( 'professional' === $type ) {
 		return array_merge( $common, array( 'experience', 'company', 'designation', 'ctc', 'verified' ) );
 	}
@@ -133,14 +149,27 @@ function eethal_td_setup_roles() {
 		'talent_admin',
 		__( 'Talent Directory Admin', 'eethal-learning' ),
 		array(
-			'read'       => true,
-			EETHAL_TD_CAP => true,
+			'read'             => true,
+			EETHAL_TD_CAP      => true,
+			EETHAL_TD_VIEW_CAP => true,
+		)
+	);
+
+	// Accounts that may only look at the Talent Pool.
+	remove_role( 'talent_viewer' );
+	add_role(
+		'talent_viewer',
+		__( 'Talent Pool Viewer', 'eethal-learning' ),
+		array(
+			'read'             => true,
+			EETHAL_TD_VIEW_CAP => true,
 		)
 	);
 
 	$administrator = get_role( 'administrator' );
 	if ( $administrator ) {
 		$administrator->add_cap( EETHAL_TD_CAP );
+		$administrator->add_cap( EETHAL_TD_VIEW_CAP );
 	}
 
 	update_option( 'eethal_td_roles', EETHAL_TD_VERSION );
@@ -151,7 +180,7 @@ add_action( 'init', 'eethal_td_setup_roles' );
  * Create the three directory pages, unless a page with that slug already exists.
  */
 function eethal_td_create_pages() {
-	if ( get_option( 'eethal_td_pages_created' ) ) {
+	if ( EETHAL_TD_PAGES_VERSION === get_option( 'eethal_td_pages_created' ) ) {
 		return;
 	}
 
@@ -173,7 +202,7 @@ function eethal_td_create_pages() {
 		}
 	}
 
-	update_option( 'eethal_td_pages_created', EETHAL_TD_VERSION );
+	update_option( 'eethal_td_pages_created', EETHAL_TD_PAGES_VERSION );
 }
 add_action( 'after_switch_theme', 'eethal_td_create_pages' );
 
@@ -181,7 +210,7 @@ add_action( 'after_switch_theme', 'eethal_td_create_pages' );
  * Create the pages for a theme that was already active before this file existed.
  */
 function eethal_td_maybe_create_pages() {
-	if ( wp_doing_ajax() || get_option( 'eethal_td_pages_created' ) || ! current_user_can( 'manage_options' ) ) {
+	if ( wp_doing_ajax() || EETHAL_TD_PAGES_VERSION === get_option( 'eethal_td_pages_created' ) || ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
 	eethal_td_create_pages();
@@ -196,6 +225,33 @@ add_action( 'admin_init', 'eethal_td_maybe_create_pages' );
 function eethal_td_is_app_page() {
 	return is_page_template( EETHAL_TD_TEMPLATE );
 }
+
+/**
+ * Never let the browser reuse a stored copy of a Talent Pool page: the page carries the
+ * sign-in state, so an old signed-out copy would show the sign-in screen again.
+ */
+function eethal_td_nocache() {
+	if ( eethal_td_is_app_page() ) {
+		nocache_headers();
+	}
+}
+add_action( 'template_redirect', 'eethal_td_nocache' );
+
+/**
+ * Keep WordPress's speculative loading from prefetching Talent Pool pages. Hovering a
+ * Talent Pool link while signed out would fetch the signed-out page, and Chrome would
+ * show that copy after signing in through the popup.
+ *
+ * @param string[] $paths Paths excluded from prefetch/prerender.
+ * @return string[]
+ */
+function eethal_td_no_speculation( $paths ) {
+	foreach ( eethal_td_views() as $view ) {
+		$paths[] = '/' . $view['slug'] . '/*';
+	}
+	return $paths;
+}
+add_filter( 'wp_speculation_rules_href_exclude_paths', 'eethal_td_no_speculation' );
 
 /**
  * The app view for the current page, based on its slug.
@@ -269,16 +325,57 @@ function eethal_td_enqueue() {
 		'view'    => eethal_td_current_view(),
 		'pages'   => eethal_td_page_urls(),
 		'homeUrl' => home_url( '/' ),
-		'user'    => current_user_can( EETHAL_TD_CAP )
+		// Navy logo for white bars, white logo for the dark sidebar.
+		'logos'   => array(
+			'onLight' => $uri . '/img/eethal-logo-dark.png',
+			'onDark'  => $uri . '/img/eethal-logo-white.png',
+		),
+		// Signed-in viewer (or admin); null shows the sign-in screen.
+		'user'    => eethal_td_can_view()
 			? array(
 				'name'  => $user->display_name,
 				'email' => $user->user_email,
 			)
 			: null,
+		// Talent Directory Admin / Administrator: full access. Otherwise view only.
+		'admin'   => eethal_td_can_manage(),
+		// Enroll Now form text, as authored in Customizer → Enroll Now Form.
+		'enroll'  => eethal_enroll_texts(),
 	);
 	wp_add_inline_script( 'eethal-td-app', 'window.EETHAL_TD = ' . wp_json_encode( $config ) . ';', 'before' );
 }
 add_action( 'wp_enqueue_scripts', 'eethal_td_enqueue', 100 );
+
+/**
+ * On the rest of the site, links to the Talent Pool open a sign-in popup instead of
+ * the page, until the visitor signs in (assets/talent-directory/login-popup.js).
+ */
+function eethal_td_enqueue_login_popup() {
+	if ( eethal_td_is_app_page() || eethal_td_can_view() ) {
+		return;
+	}
+
+	$dir  = EETHAL_DIR . '/assets/talent-directory';
+	$uri  = EETHAL_URI . '/assets/talent-directory';
+	$urls = eethal_td_page_urls();
+
+	wp_enqueue_style( 'eethal-td-login', $uri . '/login-popup.css', array(), filemtime( $dir . '/login-popup.css' ) );
+	wp_enqueue_script( 'eethal-td-login', $uri . '/login-popup.js', array(), filemtime( $dir . '/login-popup.js' ), true );
+	wp_add_inline_script(
+		'eethal-td-login',
+		'window.EETHAL_TD_LOGIN = ' . wp_json_encode(
+			array(
+				'restUrl' => esc_url_raw( rest_url( 'eethal/v1/' ) ),
+				'nonce'   => wp_create_nonce( 'wp_rest' ),
+				// Dashboard first: it's where the popup goes if no link target is known.
+				'pages'   => array( $urls['dashboard'], $urls['professionals'], $urls['students'] ),
+				'logo'    => $uri . '/img/eethal-logo-dark.png',
+			)
+		) . ';',
+		'before'
+	);
+}
+add_action( 'wp_enqueue_scripts', 'eethal_td_enqueue_login_popup', 100 );
 
 /* ------------------------------------------------------------------------- *
  * REST API
@@ -299,8 +396,9 @@ function eethal_td_register_routes() {
 			'/' . $route,
 			array(
 				array(
+					// The Talent Pool is sign-in only, so profiles are too.
 					'methods'             => WP_REST_Server::READABLE,
-					'permission_callback' => '__return_true',
+					'permission_callback' => 'eethal_td_can_view',
 					'callback'            => function () use ( $type ) {
 						return eethal_td_rest_list( $type );
 					},
@@ -360,7 +458,17 @@ function eethal_td_register_routes() {
 add_action( 'rest_api_init', 'eethal_td_register_routes' );
 
 /**
- * Whether the current user may add, edit and delete profiles.
+ * Whether the current user may see the Talent Pool (signed in as a viewer or admin).
+ *
+ * @return bool
+ */
+function eethal_td_can_view() {
+	return current_user_can( EETHAL_TD_VIEW_CAP ) || current_user_can( EETHAL_TD_CAP );
+}
+
+/**
+ * Whether the current user may add, edit and delete profiles and review entries
+ * (Talent Directory Admin and Administrator roles).
  *
  * @return bool
  */
@@ -426,6 +534,48 @@ function eethal_td_rest_save( $type, WP_REST_Request $request, $post_id = 0 ) {
 		return new WP_Error( 'eethal_td_invalid_json', __( 'Invalid JSON body.', 'eethal-learning' ), array( 'status' => 400 ) );
 	}
 
+	$record = eethal_td_save_profile( $type, $body, $post_id );
+	if ( is_wp_error( $record ) ) {
+		return $record;
+	}
+
+	$link = array(
+		'type' => $type,
+		'id'   => $record['id'],
+	);
+	if ( $post_id ) {
+		eethal_td_log(
+			'profile_updated',
+			/* translators: 1: Professional or Student, 2: name, 3: admin name. */
+			sprintf( __( '%1$s profile “%2$s” was updated by %3$s.', 'eethal-learning' ), 'student' === $type ? __( 'Student', 'eethal-learning' ) : __( 'Professional', 'eethal-learning' ), $record['name'], eethal_td_actor() ),
+			false,
+			$link
+		);
+	} else {
+		eethal_td_log(
+			'profile_added',
+			eethal_td_added_text( $type, $record['name'] ),
+			true,
+			$link,
+			/* translators: 1: "New … was added to the directory.", 2: admin name. */
+			sprintf( __( '%1$s Added by %2$s.', 'eethal-learning' ), eethal_td_added_text( $type, $record['name'] ), eethal_td_actor() )
+		);
+	}
+
+	$response = rest_ensure_response( $record );
+	$response->set_status( $post_id ? 200 : 201 );
+	return $response;
+}
+
+/**
+ * Create a profile, or update the fields given for an existing one.
+ *
+ * @param string $type    "professional" or "student".
+ * @param array  $body    Field values keyed by app field name, plus "name".
+ * @param int    $post_id Profile to update; 0 to create.
+ * @return array|WP_Error The saved profile, as eethal_td_record() returns it.
+ */
+function eethal_td_save_profile( $type, array $body, $post_id = 0 ) {
 	$post_type = eethal_td_post_type( $type );
 
 	if ( $post_id ) {
@@ -476,9 +626,7 @@ function eethal_td_rest_save( $type, WP_REST_Request $request, $post_id = 0 ) {
 		update_post_meta( $result, eethal_td_meta_key( $field ), $value );
 	}
 
-	$response = rest_ensure_response( eethal_td_record( get_post( $result ), $type ) );
-	$response->set_status( $post_id ? 200 : 201 );
-	return $response;
+	return eethal_td_record( get_post( $result ), $type );
 }
 
 /**
@@ -704,7 +852,13 @@ function eethal_td_rest_delete( $type, $post_id ) {
 	if ( ! $post || eethal_td_post_type( $type ) !== $post->post_type ) {
 		return new WP_Error( 'eethal_td_not_found', __( 'Profile not found.', 'eethal-learning' ), array( 'status' => 404 ) );
 	}
+	$name = html_entity_decode( $post->post_title, ENT_QUOTES, 'UTF-8' );
 	wp_delete_post( $post_id, true );
+	eethal_td_log(
+		'profile_deleted',
+		/* translators: 1: name, 2: list name, 3: admin name. */
+		sprintf( __( 'Profile “%1$s” was deleted from %2$s by %3$s.', 'eethal-learning' ), $name, eethal_td_list_name( $type ), eethal_td_actor() )
+	);
 	return array( 'success' => true );
 }
 
@@ -739,19 +893,23 @@ function eethal_td_rest_login( WP_REST_Request $request ) {
 	if ( is_wp_error( $user ) ) {
 		return new WP_Error( 'eethal_td_login_failed', __( 'Incorrect email or password.', 'eethal-learning' ), array( 'status' => 401 ) );
 	}
-	if ( ! user_can( $user, EETHAL_TD_CAP ) ) {
-		return new WP_Error( 'eethal_td_not_admin', __( 'This account does not have admin access.', 'eethal-learning' ), array( 'status' => 403 ) );
+
+	if ( ! user_can( $user, EETHAL_TD_VIEW_CAP ) && ! user_can( $user, EETHAL_TD_CAP ) ) {
+		return new WP_Error( 'eethal_td_no_access', __( 'This account does not have access to the Talent Pool.', 'eethal-learning' ), array( 'status' => 403 ) );
 	}
 
-	// The nonce is tied to the session token in the logged-in cookie, which this request doesn't have yet.
-	add_action( 'set_logged_in_cookie', 'eethal_td_capture_logged_in_cookie' );
-	wp_set_auth_cookie( $user->ID, true, is_ssl() );
-	wp_set_current_user( $user->ID );
-	do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
+	if ( ! is_user_logged_in() || get_current_user_id() !== $user->ID ) {
+		// The nonce is tied to the session token in the logged-in cookie, which this request doesn't have yet.
+		add_action( 'set_logged_in_cookie', 'eethal_td_capture_logged_in_cookie' );
+		wp_set_auth_cookie( $user->ID, true, is_ssl() );
+		wp_set_current_user( $user->ID );
+		do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
+	}
 
 	return array(
 		'name'  => $user->display_name,
 		'email' => $user->user_email,
+		'admin' => user_can( $user, EETHAL_TD_CAP ),
 		'nonce' => wp_create_nonce( 'wp_rest' ),
 	);
 }
