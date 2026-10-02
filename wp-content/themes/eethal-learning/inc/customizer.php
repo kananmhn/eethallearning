@@ -333,38 +333,16 @@ function eethal_customize_register( $wp_customize ) {
 	$add( 'footer_text', 'eethal_cta', esc_html__( 'Footer credit line', 'eethal-learning' ), 'text', esc_html__( 'The copyright symbol and current year are added automatically.', 'eethal-learning' ) );
 
 	// -----------------------------------------------------------------
-	// Enroll Now form (/enroll/, inc/enrollments.php).
+	// Enroll Now form and Form Spam Protection. The fields are listed once in
+	// eethal_enroll_setting_groups() (inc/enroll-admin.php), which also builds the
+	// Enroll Now page in wp-admin, so both screens edit the same settings.
 	// -----------------------------------------------------------------
-	$section(
-		'eethal_enroll',
-		esc_html__( 'Enroll Now Form', 'eethal-learning' ),
-		esc_html__( 'Text of the application form behind every "Enroll Now" button. Write {batch} anywhere to show the batch name. Questions are written as "Label | hint shown inside the empty box".', 'eethal-learning' )
-	);
-
-	$q_help = esc_html__( 'Label | hint', 'eethal-learning' );
-	$add( 'enroll_batch', 'eethal_enroll', esc_html__( 'Batch', 'eethal-learning' ), 'text', esc_html__( 'Saved with each application, so you can filter by batch. Change it when a new batch opens, e.g. Batch 9.', 'eethal-learning' ) );
-	$add( 'enroll_badge', 'eethal_enroll', esc_html__( 'Badge above the heading', 'eethal-learning' ) );
-	$add( 'enroll_title', 'eethal_enroll', esc_html__( 'Heading', 'eethal-learning' ) );
-	$add( 'enroll_intro', 'eethal_enroll', esc_html__( 'Welcome text', 'eethal-learning' ), 'textarea' );
-	$add( 'enroll_note', 'eethal_enroll', esc_html__( 'Smaller text under the welcome', 'eethal-learning' ), 'textarea' );
-	$add( 'enroll_section_1', 'eethal_enroll', esc_html__( 'First group title', 'eethal-learning' ) );
-	$add( 'enroll_q_name', 'eethal_enroll', esc_html__( 'Question: name', 'eethal-learning' ), 'text', $q_help );
-	$add( 'enroll_q_email', 'eethal_enroll', esc_html__( 'Question: email', 'eethal-learning' ), 'text', $q_help );
-	$add( 'enroll_q_mobile', 'eethal_enroll', esc_html__( 'Question: mobile number', 'eethal-learning' ), 'text', $q_help );
-	$add( 'enroll_q_dob', 'eethal_enroll', esc_html__( 'Question: date of birth', 'eethal-learning' ) );
-	$add( 'enroll_q_district', 'eethal_enroll', esc_html__( 'Question: district', 'eethal-learning' ), 'text', $q_help );
-	$add( 'enroll_q_referred', 'eethal_enroll', esc_html__( 'Question: referred by', 'eethal-learning' ), 'text', $q_help );
-	$add( 'enroll_q_status', 'eethal_enroll', esc_html__( 'Question: current status', 'eethal-learning' ) );
-	$add( 'enroll_statuses', 'eethal_enroll', esc_html__( 'Current status choices', 'eethal-learning' ), 'textarea', esc_html__( 'One choice per line.', 'eethal-learning' ) );
-	$add( 'enroll_section_2', 'eethal_enroll', esc_html__( 'Second group title', 'eethal-learning' ) );
-	$add( 'enroll_q_degree', 'eethal_enroll', esc_html__( 'Question: degree', 'eethal-learning' ), 'text', esc_html__( 'Label | hint for the "Other" box', 'eethal-learning' ) );
-	$add( 'enroll_degrees', 'eethal_enroll', esc_html__( 'Degree choices', 'eethal-learning' ), 'textarea', esc_html__( 'One choice per line.', 'eethal-learning' ) );
-	$add( 'enroll_degree_other', 'eethal_enroll', esc_html__( '"Other" degree choice', 'eethal-learning' ), 'text', esc_html__( 'Lets people type their own degree. Leave empty to remove it.', 'eethal-learning' ) );
-	$add( 'enroll_q_college', 'eethal_enroll', esc_html__( 'Question: college name', 'eethal-learning' ), 'text', $q_help );
-	$add( 'enroll_q_passed', 'eethal_enroll', esc_html__( 'Question: year passed out', 'eethal-learning' ), 'text', $q_help );
-	$add( 'enroll_button', 'eethal_enroll', esc_html__( 'Submit button', 'eethal-learning' ) );
-	$add( 'enroll_thanks_title', 'eethal_enroll', esc_html__( 'Thank-you heading', 'eethal-learning' ), 'text', esc_html__( '{name} is replaced with the applicant\'s first name.', 'eethal-learning' ) );
-	$add( 'enroll_thanks_text', 'eethal_enroll', esc_html__( 'Thank-you message', 'eethal-learning' ), 'textarea' );
+	foreach ( eethal_enroll_setting_groups() as $group_id => $group ) {
+		$section( $group_id, esc_html( $group['title'] ), esc_html( $group['desc'] ) );
+		foreach ( $group['fields'] as $id => $field ) {
+			$add( $id, $group_id, esc_html( $field['label'] ), $field['type'], esc_html( $field['desc'] ) );
+		}
+	}
 }
 add_action( 'customize_register', 'eethal_customize_register' );
 

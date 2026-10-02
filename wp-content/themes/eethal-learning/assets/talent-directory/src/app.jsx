@@ -7,6 +7,7 @@ import {
   BrandLogo, GRADIENTS, hashStr, tidy, tidyEducation, sameText, uniqueOptions,
   Avatar, EmptyState, FilterSelect, DetailField, Field, formatDate,
 } from "./shared.jsx";
+import { Captcha, spamFields } from "./spam.jsx";
 import { EnrollFormApp } from "./enroll/EnrollFormApp.jsx";
 import { EnrollmentsPage } from "./enroll/EnrollmentsPage.jsx";
 
@@ -613,17 +614,15 @@ function SearchResultsPage({query,professionals,students,openDetail,openEdit,ope
 
 /* ============ PROFILE DETAIL ============ */
 
-function ProfileDetailPage({type,data,onBack,onEdit,onDelete,isAdmin}){
+function ProfileDetailPage({type,data,onBack,onEdit,isAdmin}){
   const isP = type==="professional";
   return (
     <div>
       <div className="detail-top">
         <button className="back-btn" onClick={onBack}><I.Back/> Back to List</button>
+        {/* No Delete here; profiles are deleted from the card menu in the list. */}
         {isAdmin ? (
-          <div style={{display:'flex',gap:8}}>
-            <button className="btn btn-secondary btn-sm" onClick={onEdit}><I.Edit/> Edit</button>
-            <button className="btn btn-secondary btn-sm" onClick={onDelete} style={{color:'var(--red)'}}><I.Trash/> Delete</button>
-          </div>
+          <button className="btn btn-secondary btn-sm" onClick={onEdit}><I.Edit/> Edit</button>
         ) : (
           <span className="role-tag" style={{fontSize:11.5,fontWeight:700,color:'var(--text-faint)',border:'1px solid var(--border)',borderRadius:999,padding:'6px 12px'}}>View only</span>
         )}
@@ -727,6 +726,8 @@ function ProfileForm({mode,initialType,initialData,onCancel,onSave}){
   const [errors,setErrors]=useState({});
   const [busy,setBusy]=useState(false);
   const [formError,setFormError]=useState("");
+  const [captcha,setCaptcha]=useState("");
+  const [captchaReset,setCaptchaReset]=useState(0);
   const isEntry = mode==="entry";
 
   useEffect(()=>{
@@ -779,10 +780,11 @@ function ProfileForm({mode,initialType,initialData,onCancel,onSave}){
     if(!validate()){ setFormError("Please correct the highlighted fields."); return; }
     setBusy(true);
     try{
-      await onSave(type,data);
+      await onSave(type, isEntry ? {...data, ...spamFields(captcha)} : data);
     }catch(err){
       if(err && err.fields) setErrors(err.fields);
       setFormError((err && err.message) || "Couldn't submit the form. Please try again.");
+      if(isEntry) setCaptchaReset(n=>n+1);
     }finally{
       setBusy(false);
     }
@@ -875,6 +877,7 @@ function ProfileForm({mode,initialType,initialData,onCancel,onSave}){
           {isEntry && <input className="hp-field" tabIndex="-1" autoComplete="off" aria-hidden="true" value={data.website||""} onChange={e=>update("website",e.target.value)}/>}
         </div>
 
+        {isEntry && <Captcha onToken={setCaptcha} resetKey={captchaReset}/>}
         {formError && <div className="form-error-banner"><I.Alert/> {formError}</div>}
         <div className="form-actions">
           {onCancel && <button className="btn btn-secondary" onClick={onCancel} disabled={busy}>Cancel</button>}
@@ -977,7 +980,8 @@ function EntryDetail({entry,onBack,onReview,onDelete,openProfile}){
             <button className="btn btn-reject btn-sm" onClick={()=>onReview(entry,"reject")}><I.Close/> Reject</button>
             <button className="btn btn-success btn-sm" onClick={()=>onReview(entry,"approve")}><I.Check/> Approve</button>
           </div>
-        ) : (
+        ) : entry.status==="rejected" && (
+          // Approved entries became profiles, so only rejected ones can be deleted.
           <button className="btn btn-secondary btn-sm" style={{color:'var(--red)'}} onClick={()=>onDelete(entry)}><I.Trash/> Delete Entry</button>
         )}
       </div>
@@ -1528,7 +1532,6 @@ function App(){
     mainContent = <ProfileDetailPage type={detail.type} data={detailData}
       onBack={()=>setDetail(null)}
       onEdit={()=>openEdit(detail.type,detailData)}
-      onDelete={()=>openDelete(detail.type,detailData)}
       isAdmin={isAdmin}/>;
   } else if(view==="dashboard"){
     mainContent = <Dashboard professionals={professionals} students={students} setView={changeView} openDetail={openDetail} isAdmin={isAdmin} pendingCount={pendingCount}/>;

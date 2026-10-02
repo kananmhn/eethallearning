@@ -54,6 +54,17 @@ function eethal_defaults() {
 		'enroll_button'         => 'Submit Application',
 		'enroll_thanks_title'   => 'Thank you, {name}!',
 		'enroll_thanks_text'    => 'Your application for {batch} has been received. Our team will contact you soon.',
+
+		// Form spam protection (inc/spam-guard.php).
+		'spam_turnstile_site'       => '',
+		'spam_turnstile_secret'     => '',
+		'spam_msg_expired'          => 'This form has expired. Please reload the page and try again.',
+		'spam_msg_fast'             => 'That was quick! Please check your answers, then submit again.',
+		'spam_msg_links'            => 'Please remove web links from your answers.',
+		'spam_msg_captcha'          => 'Please complete the "I\'m not a robot" check.',
+		'spam_msg_limit'            => 'Too many submissions from your connection. Please try again in an hour.',
+		'spam_msg_duplicate_enroll' => 'You have already applied for {batch} with this email or mobile number. Our team will contact you soon.',
+		'spam_msg_duplicate_entry'  => 'Your details have already been submitted and are waiting for review.',
 		'particles'             => true,
 
 		// Hero.

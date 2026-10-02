@@ -2,6 +2,7 @@
 import { api } from "../core.js";
 import { I } from "../icons.jsx";
 import { Field } from "../shared.jsx";
+import { Captcha, spamFields } from "../spam.jsx";
 import { ENROLL, label, hint, todayIso } from "./texts.js";
 import { validateEnroll } from "./validate.js";
 
@@ -27,6 +28,8 @@ export function EnrollForm({onSubmitted}){
   const [errors,setErrors]=useState({});
   const [busy,setBusy]=useState(false);
   const [formError,setFormError]=useState("");
+  const [captcha,setCaptcha]=useState("");
+  const [captchaReset,setCaptchaReset]=useState(0);
 
   const clearError = k => setErrors(x=>{ if(!x[k]) return x; const n={...x}; delete n[k]; return n; });
   const update = (k,v) => { setD(x=>({...x,[k]:v})); clearError(k); };
@@ -51,16 +54,18 @@ export function EnrollForm({onSubmitted}){
     setBusy(true);
     try{
       const {degreeChoice, ...body} = d;
-      const res = await api("enrollments", {method:"POST", body: JSON.stringify(body)});
+      const res = await api("enrollments", {method:"POST", body: JSON.stringify({...body, ...spamFields(captcha)})});
       const out = await res.json().catch(()=>({}));
       if(!res.ok){
         if(out.data && out.data.fields) setErrors(out.data.fields);
         setFormError(out.message || "Couldn't submit the form. Please try again.");
+        setCaptchaReset(n=>n+1);
         return;
       }
       onSubmitted(d.name);
     }catch(err){
       setFormError("Couldn't reach the server. Please try again.");
+      setCaptchaReset(n=>n+1);
     }finally{
       setBusy(false);
     }
@@ -96,6 +101,7 @@ export function EnrollForm({onSubmitted}){
         <input className="hp-field" tabIndex="-1" autoComplete="off" aria-hidden="true" value={d.website} onChange={e=>update("website",e.target.value)}/>
       </div>
 
+      <Captcha onToken={setCaptcha} resetKey={captchaReset}/>
       {formError && <div className="form-error-banner"><I.Alert/> {formError}</div>}
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={busy}><I.Send/> {busy ? "Submitting..." : ENROLL.button}</button>

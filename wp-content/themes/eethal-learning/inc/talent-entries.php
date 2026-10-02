@@ -166,17 +166,10 @@ function eethal_td_rest_submit_entry( WP_REST_Request $request ) {
 		return new WP_Error( 'eethal_td_invalid_json', __( 'Invalid JSON body.', 'eethal-learning' ), array( 'status' => 400 ) );
 	}
 
-	// Bots fill the hidden "website" field; pretend it worked so they don't retry.
-	if ( ! empty( $body['website'] ) ) {
-		return rest_ensure_response( array( 'success' => true ) );
-	}
-
-	// At most 5 submissions per hour from one address.
-	$ip        = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-	$limit_key = 'eethal_td_entry_' . md5( $ip );
-	$count     = (int) get_transient( $limit_key );
-	if ( $count >= 5 ) {
-		return new WP_Error( 'eethal_td_too_many', __( 'Too many submissions. Please try again in an hour.', 'eethal-learning' ), array( 'status' => 429 ) );
+	// Honeypot, form token, links, captcha and hourly limit (inc/spam-guard.php).
+	$guard = eethal_spam_guard( $body, 'entry' );
+	if ( true !== $guard ) {
+		return $guard;
 	}
 
 	$type = ( $body['type'] ?? '' ) === 'student' ? 'student' : 'professional';
@@ -195,6 +188,11 @@ function eethal_td_rest_submit_entry( WP_REST_Request $request ) {
 	$valid = eethal_td_validate_entry( $type, $data );
 	if ( is_wp_error( $valid ) ) {
 		return $valid;
+	}
+
+	// Don't take the same person again while their earlier entry is still waiting.
+	if ( eethal_td_entry_waiting( $data['email'], $data['mobile'] ) ) {
+		return new WP_Error( 'eethal_td_duplicate_entry', eethal_spam_msg( 'spam_msg_duplicate_entry' ), array( 'status' => 409 ) );
 	}
 
 	if ( ! empty( $body['photo'] ) ) {
@@ -225,7 +223,7 @@ function eethal_td_rest_submit_entry( WP_REST_Request $request ) {
 		}
 	}
 
-	set_transient( $limit_key, $count + 1, HOUR_IN_SECONDS );
+	eethal_spam_count( 'entry' );
 	eethal_td_send_entry_email( $entry_id );
 	eethal_td_log(
 		'entry_new',
@@ -244,6 +242,54 @@ function eethal_td_rest_submit_entry( WP_REST_Request $request ) {
 	$response = rest_ensure_response( array( 'success' => true ) );
 	$response->set_status( 201 );
 	return $response;
+}
+
+/**
+ * Whether an entry with this email or mobile number is still waiting for review
+ * (pending and not deleted).
+ *
+ * @param string $email  Email address.
+ * @param string $mobile Mobile number.
+ * @return bool
+ */
+function eethal_td_entry_waiting( $email, $mobile ) {
+	return (bool) get_posts(
+		array(
+			'post_type'   => EETHAL_TD_ENTRY_TYPE,
+			'post_status' => 'publish',
+			'numberposts' => 1,
+			'fields'      => 'ids',
+			'meta_query'  => array( // phpcs:ignore WordPress.DB.SlowDBQuery
+				array(
+					'key'   => '_eethal_entry_status',
+					'value' => 'pending',
+				),
+				array(
+					'relation' => 'OR',
+					array(
+						'key'     => '_eethal_entry_deleted',
+						'compare' => 'NOT EXISTS',
+					),
+					array(
+						'key'     => '_eethal_entry_deleted',
+						'value'   => '1',
+						'compare' => '!=',
+					),
+				),
+				array(
+					'relation' => 'OR',
+					array(
+						'key'   => eethal_td_meta_key( 'email' ),
+						'value' => $email,
+					),
+					array(
+						'key'   => eethal_td_meta_key( 'mobile' ),
+						'value' => $mobile,
+					),
+				),
+			),
+		)
+	);
 }
 
 /**

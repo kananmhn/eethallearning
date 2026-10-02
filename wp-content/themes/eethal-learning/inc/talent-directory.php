@@ -341,6 +341,8 @@ function eethal_td_enqueue() {
 		'admin'   => eethal_td_can_manage(),
 		// Enroll Now form text, as authored in Customizer → Enroll Now Form.
 		'enroll'  => eethal_enroll_texts(),
+		// Form token and Turnstile site key for the public forms (inc/spam-guard.php).
+		'spam'    => eethal_spam_config(),
 	);
 	wp_add_inline_script( 'eethal-td-app', 'window.EETHAL_TD = ' . wp_json_encode( $config ) . ';', 'before' );
 }

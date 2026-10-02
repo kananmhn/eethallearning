@@ -552,6 +552,9 @@ tr:last-child td{border-bottom:none;}
 }
 .form-error-banner svg{width:16px;height:16px;flex-shrink:0;}
 .hp-field{position:absolute !important;left:-9999px !important;width:1px;height:1px;opacity:0;}
+/* Cloudflare Turnstile "I'm not a robot" box (src/spam.jsx), when its keys are set. */
+.captcha-box{margin-top:20px;max-width:400px;}
+.captcha-box:empty{margin-top:0;}
 
 /* ---------- Approve / reject buttons ---------- */
 .btn-success{background:linear-gradient(135deg,#12B886,var(--teal));color:#fff;box-shadow:0 6px 16px rgba(15,169,129,0.3);}
