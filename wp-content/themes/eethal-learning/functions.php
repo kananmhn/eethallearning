@@ -162,6 +162,8 @@ require EETHAL_DIR . '/inc/meta-boxes.php';
 require EETHAL_DIR . '/inc/customizer.php';
 require EETHAL_DIR . '/inc/seed.php';
 require EETHAL_DIR . '/inc/spam-guard.php';
+require EETHAL_DIR . '/inc/security.php';
+require EETHAL_DIR . '/inc/notifications.php';
 require EETHAL_DIR . '/inc/talent-directory.php';
 require EETHAL_DIR . '/inc/talent-entries.php';
 require EETHAL_DIR . '/inc/talent-activity.php';
