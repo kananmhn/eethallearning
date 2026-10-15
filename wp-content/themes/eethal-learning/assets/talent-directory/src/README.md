@@ -82,12 +82,14 @@ Save these and refresh the page.
 | `src/core.js` | `CONFIG` (settings from WordPress) and the `api()` REST helper |
 | `src/icons.jsx` | Line icons (`I.Home`, `I.Mail`, ...) |
 | `src/shared.jsx` | Pieces used in more than one place: logo, avatar, form field, filters, dates |
+| `src/spam.jsx` | Spam protection for the public forms: `spamFields()` (adds the form token to a submission) and `<Captcha>` (the optional Turnstile box) |
 | `src/enroll/` | Enroll Now: `EnrollFormApp.jsx` (the public page), `EnrollForm.jsx` (the form), `EnrollmentsPage.jsx` (admin list and detail), `csv.js` (Export CSV), `validate.js` (form checks), `texts.js` (the WordPress-authored wording) |
 | `app.js` | Built app. Don't edit it by hand. |
 | `talent-directory.css` | App styles |
 | `../../inc/talent-directory.php` | Pages, profile post types, and the REST API for profiles and sign-in |
 | `../../inc/talent-entries.php` | Entry Form submissions, the admin email, and approving or rejecting entries |
 | `../../inc/enrollments.php` | Enroll Now applications: saving, the admin email, and the Enrollments list |
+| `../../inc/spam-guard.php` | Spam checks run on every public form submission (`eethal_spam_guard()`) |
 | `../../template-talent-directory.php` | Page template that the app mounts into |
 
 ## How the app gets its settings
@@ -101,7 +103,8 @@ PHP passes settings to the app as `window.EETHAL_TD` (see `eethal_td_enqueue()`)
 | `view` | Which page this is: `dashboard`, `professionals`, `students`, `entry` or `enroll` |
 | `pages` | URL of each page |
 | `user` | The signed-in admin, or `null` for visitors |
-| `enroll` | All Enroll Now wording: heading, intro, questions (`label` and `hint`), choices, button and thank-you text. Authored in Customizer → Eethal Front Page → Enroll Now Form; built by `eethal_enroll_texts()`. Don't hardcode this text in `src/enroll/`. |
+| `enroll` | All Enroll Now wording: heading, intro, questions (`label` and `hint`), choices, button and thank-you text. Authored in wp-admin → Enroll Now (or Customizer → Eethal Front Page → Enroll Now Form); built by `eethal_enroll_texts()`. Don't hardcode this text in `src/enroll/`. |
+| `spam` | `token` (signed page-load time; every public form must send it back as `formToken`) and `turnstileKey` (Turnstile site key, or empty when the robot check is off). Built by `eethal_spam_config()`. |
 
 On the Entry Form page (`view === "entry"`), the app renders `EntryFormApp`; on the
 Enroll Now page (`view === "enroll"`), `EnrollFormApp`. Every other page renders `App`.

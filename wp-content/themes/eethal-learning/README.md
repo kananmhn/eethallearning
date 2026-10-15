@@ -46,6 +46,8 @@ Eethal Front Page**, starting with a **Show this section** checkbox.
 | Mentors heading / Mentor cards | **Eethal Front Page → Mentors Section** / **Mentors** in the admin menu |
 | Alumni heading / quotes | **Eethal Front Page → Alumni Stories** / **Testimonials** in the admin menu |
 | FAQ heading / questions | **Eethal Front Page → FAQ Section** / **FAQs** in the admin menu |
+| Enroll Now form (`/enroll/`): batch, heading, questions, choices, thank-you text | **Enroll Now** in the wp-admin menu, or **Eethal Front Page → Enroll Now Form** |
+| Spam protection for both public forms: optional Cloudflare Turnstile keys, the messages people see | **Enroll Now** in the wp-admin menu, or **Eethal Front Page → Form Spam Protection** |
 | Closing CTA (text, both buttons and links, labels) + footer credit | **Eethal Front Page → Call to Action & Footer** |
 | Favicon | **Customize → Site Identity → Site Icon** |
 
@@ -57,9 +59,13 @@ course, mentor, testimonial and FAQ entries, the section images and logo (into
 the Media Library, wired to their Customizer fields) and a Primary menu. It
 never overwrites existing content.
 
-The **enrolment link** set under *Contact & Links* is reused by the hero button,
-the CTA button, and any course card that has no link of its own — so changing
-the Google Form URL in one place updates the whole site.
+The hero button, the CTA button, and any course card that has no link of its own
+open the built-in **Enroll Now** form (`/enroll/`). To send them somewhere else,
+set **Contact & Links → Enrolment form link**; leave it empty to use `/enroll/`.
+The form's wording (heading, questions, choices, thank-you text, batch) is edited
+on the **Enroll Now** page in the wp-admin menu (`inc/enroll-admin.php`). The same
+fields also appear under **Eethal Front Page → Enroll Now Form** in the Customizer;
+both are built from `eethal_enroll_setting_groups()`, so add new fields there.
 
 ### Content types
 
@@ -91,6 +97,8 @@ eethal-learning/
 ├── functions.php                Setup, enqueues, theme supports
 ├── header.php  footer.php       Chrome, nav, CTA band, modal
 ├── front-page.php               Landing page — loops over the section list
+├── template-talent-directory.php  Page template the React app mounts into
+├── build.bat                    Builds the React app (src/ → app.js)
 ├── index.php  page.php  single.php  archive.php  search.php  404.php
 ├── comments.php  searchform.php
 ├── inc/
@@ -98,13 +106,21 @@ eethal-learning/
 │   ├── template-functions.php   eethal_opt(), helpers
 │   ├── post-types.php           Courses, Mentors, Testimonials, FAQs
 │   ├── meta-boxes.php           The extra fields on those types
-│   └── customizer.php           Customizer panel
+│   ├── customizer.php           Customizer panel
+│   ├── seed.php                 One-time import of the packaged content
+│   ├── talent-directory.php     Talent Pool pages, roles, profiles API, sign-in
+│   ├── talent-entries.php       Entry Form submissions and review
+│   ├── talent-activity.php      Notifications (activity log)
+│   ├── enrollments.php          Enroll Now applications and wording
+│   ├── enroll-admin.php         Enroll Now settings page in wp-admin (+ the field list)
+│   └── spam-guard.php           Spam checks shared by the two public forms
 ├── template-parts/
 │   ├── sections/                One file per landing-page section
 │   └── content*.php             Blog/archive/search cards
 └── assets/
     ├── js/main.js               Particles, reveals, counters, FAQ, modal, mobile nav
     ├── js/customizer.js         Customizer live preview
+    ├── talent-directory/        React app (src/), built app.js, styles, sign-in popup
     └── images/                  The 10 images the templates reference, with
                                  filenames slugified (spaces and parentheses
                                  removed). The project's other artwork was left
@@ -113,35 +129,36 @@ eethal-learning/
                                  you need through the Media Library instead.
 ```
 
-## Talent Directory (Dashboard, Working Professionals, Students)
+## Talent Pool, Entry Form and Enroll Now
 
-The directory app lives on three pages that use the **Talent Directory** page
-template: `/dashboard/`, `/working-professionals/` and `/students/`. They are
-created automatically (unless a page with that slug already exists). The app
-draws its own header, navigation and sign-in, so these pages skip the site
-header, footer and landing-page CSS.
+The React app runs on the pages that use the **Talent Directory** page template:
+`/dashboard/`, `/working-professionals/`, `/students/` (the sign-in-only Talent
+Pool) and the public `/entry-form/` and `/enroll/`. These pages are created
+automatically, unless a page with that slug already exists. The app draws its own
+header and navigation, so these pages skip the site header, footer and
+landing-page CSS.
 
-- **Data** — profiles are the **Professionals** and **Students** post types in
-  the admin menu (title = name, fields in the details box). Admins can also add,
-  edit and delete them from the app itself.
-- **Sign in** — the app's *Sign In* button accepts a WordPress email (or
-  username) and password. Only users with the `manage_talent_directory`
-  capability can sign in: Administrators and the **Talent Directory Admin**
-  role. Add a user with that role under **Users → Add New** to give someone
-  access. Sign-in persists across page loads (WordPress login cookie).
-- **API** — `inc/talent-directory.php` registers `/wp-json/eethal/v1/`
-  `professionals`, `students` (GET public; POST / PUT / DELETE for directory
-  admins), `auth/login` and `auth/logout`. Uploaded photos go to the Media
-  Library.
-- **Editing the app** — the source is
-  `assets/talent-directory/src/app.jsx`; the page loads the compiled
-  `assets/talent-directory/app.js` (React comes from WordPress core). Rebuild
-  after changes:
-
-  ```
-  npx esbuild assets/talent-directory/src/app.jsx --loader:.jsx=jsx --jsx-factory=React.createElement --jsx-fragment=React.Fragment --format=iife --target=es2018 --minify --charset=utf8 --outfile=assets/talent-directory/app.js
-  ```
-
+- **Access by role** — the Talent Pool needs a WordPress sign-in (email or
+  username). **Talent Pool Viewer** accounts can only view; **Talent Directory
+  Admin** and **Administrator** accounts can add, edit and delete profiles, review
+  **New Entries**, see **Enrollments**, and get notifications. Create accounts
+  under **Users → Add New**. On the rest of the site, Talent Pool links open a
+  sign-in popup.
+- **Data** — profiles are the **Professionals** and **Students** post types (also
+  editable in the app). Entry Form submissions (`inc/talent-entries.php`) and
+  Enroll Now applications (`inc/enrollments.php`) are stored as hidden post types
+  and managed in the app. Both email the site admin.
+- **Spam** — both public forms go through `eethal_spam_guard()` in
+  `inc/spam-guard.php`: honeypot, signed form token with a minimum fill time, no links,
+  hourly limit per address, and an optional Cloudflare Turnstile check. Each form also
+  refuses repeats of a submission that is already in.
+- **API** — everything is under `/wp-json/eethal/v1/`; see the app README for the
+  route list. Uploaded photos go to the Media Library.
+- **Editing the app** — the source is in `assets/talent-directory/src/` (entry
+  point `app.jsx`; Enroll Now in `src/enroll/`). The page loads the compiled
+  `assets/talent-directory/app.js`, and React comes from WordPress core. Rebuild
+  after changes by running `build.bat` in this folder. Details are in
+  [`assets/talent-directory/src/README.md`](assets/talent-directory/src/README.md).
   Styles are in `assets/talent-directory/talent-directory.css`.
 
 ## Reordering or removing landing sections

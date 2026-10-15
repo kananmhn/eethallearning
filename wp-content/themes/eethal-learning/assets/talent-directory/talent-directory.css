@@ -90,6 +90,7 @@ a{color:inherit;text-decoration:none;}
 .logo-text{color:var(--navy);font-weight:700;font-size:16.5px;letter-spacing:-0.01em;}
 .logo-text.on-dark{color:#fff;}
 .brand-row{display:flex;align-items:center;gap:10px;padding-right:20px;border-right:1px solid var(--border);margin-right:6px;}
+.brand-row--phone-only{display:none;} /* admins: logo is in the sidebar on wider screens */
 
 /* ---------- Topbar ---------- */
 .header-shell{background:#0B1330;position:sticky;top:0;z-index:30;border-bottom:none;backdrop-filter:none;-webkit-backdrop-filter:none;}
@@ -391,6 +392,8 @@ a{color:inherit;text-decoration:none;}
 .modal-icon{width:44px;height:44px;border-radius:12px;background:var(--red-soft);color:var(--red);display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
 .modal-card h3{margin:0 0 8px;font-size:16.5px;color:var(--text);}
 .modal-card p{margin:0 0 20px;font-size:13.5px;color:var(--text-soft);line-height:1.5;}
+/* Error text on the "Something went wrong" screen (src/error-boundary.jsx). */
+.crash-message{margin:0 0 20px;padding:10px 12px;max-height:160px;overflow:auto;background:var(--red-soft);color:var(--red);border-radius:8px;font-size:12px;line-height:1.45;white-space:pre-wrap;word-break:break-word;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
 
 /* ---------- Table ---------- */
@@ -441,7 +444,13 @@ tr:last-child td{border-bottom:none;}
   .app-shell.with-sidebar{flex-direction:column;}
   .app-shell.with-sidebar .main-area{margin-left:0;}
   .subnav{display:none;}
-  .brand-row{display:none;}
+  /* No sidebar on phones, so the top bar carries the logo for everyone. */
+  .topbar{padding:0 16px;gap:10px;}
+  .topbar .brand-row{display:flex;padding-right:0;margin-right:0;border-right:none;flex-shrink:0;}
+  .topbar .brand-logo{height:38px;}
+  .topbar-right{gap:10px;min-width:0;}
+  .chip-name{min-width:0;}
+  .chip-name > span:first-child{display:block;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .search-box{display:none;}
   .content{padding:18px 16px 90px;}
   .card-grid{grid-template-columns:1fr;}
@@ -552,6 +561,9 @@ tr:last-child td{border-bottom:none;}
 }
 .form-error-banner svg{width:16px;height:16px;flex-shrink:0;}
 .hp-field{position:absolute !important;left:-9999px !important;width:1px;height:1px;opacity:0;}
+/* Cloudflare Turnstile "I'm not a robot" box (src/spam.jsx), when its keys are set. */
+.captcha-box{margin-top:20px;max-width:400px;}
+.captcha-box:empty{margin-top:0;}
 
 /* ---------- Approve / reject buttons ---------- */
 .btn-success{background:linear-gradient(135deg,#12B886,var(--teal));color:#fff;box-shadow:0 6px 16px rgba(15,169,129,0.3);}

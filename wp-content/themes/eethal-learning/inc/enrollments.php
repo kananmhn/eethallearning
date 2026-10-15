@@ -256,17 +256,10 @@ function eethal_enroll_rest_submit( WP_REST_Request $request ) {
 		return new WP_Error( 'eethal_enroll_invalid_json', __( 'Invalid JSON body.', 'eethal-learning' ), array( 'status' => 400 ) );
 	}
 
-	// Bots fill the hidden "website" field; pretend it worked so they don't retry.
-	if ( ! empty( $body['website'] ) ) {
-		return rest_ensure_response( array( 'success' => true ) );
-	}
-
-	// At most 5 applications per hour from one address.
-	$ip        = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-	$limit_key = 'eethal_enroll_' . md5( $ip );
-	$count     = (int) get_transient( $limit_key );
-	if ( $count >= 5 ) {
-		return new WP_Error( 'eethal_enroll_too_many', __( 'Too many submissions. Please try again in an hour.', 'eethal-learning' ), array( 'status' => 429 ) );
+	// Honeypot, form token, links, captcha and hourly limit (inc/spam-guard.php).
+	$guard = eethal_spam_guard( $body, 'enroll' );
+	if ( true !== $guard ) {
+		return $guard;
 	}
 
 	$data = eethal_enroll_clean( $body );
@@ -274,6 +267,11 @@ function eethal_enroll_rest_submit( WP_REST_Request $request ) {
 		return $data;
 	}
 	$data['batch'] = eethal_enroll_batch();
+
+	// One application per person per batch.
+	if ( eethal_enroll_already_applied( $data ) ) {
+		return new WP_Error( 'eethal_enroll_duplicate', str_replace( '{batch}', $data['batch'], eethal_spam_msg( 'spam_msg_duplicate_enroll' ) ), array( 'status' => 409 ) );
+	}
 
 	$post_id = wp_insert_post(
 		array(
@@ -290,7 +288,7 @@ function eethal_enroll_rest_submit( WP_REST_Request $request ) {
 		update_post_meta( $post_id, '_eethal_enroll_' . $field, $data[ $field ] );
 	}
 
-	set_transient( $limit_key, $count + 1, HOUR_IN_SECONDS );
+	eethal_spam_count( 'enroll' );
 	eethal_enroll_send_email( $post_id );
 	eethal_td_log(
 		'enroll_new',
@@ -306,6 +304,40 @@ function eethal_enroll_rest_submit( WP_REST_Request $request ) {
 	$response = rest_ensure_response( array( 'success' => true ) );
 	$response->set_status( 201 );
 	return $response;
+}
+
+/**
+ * Whether this email or mobile number already applied for the same batch.
+ *
+ * @param array $data Clean application, including "batch".
+ * @return bool
+ */
+function eethal_enroll_already_applied( array $data ) {
+	return (bool) get_posts(
+		array(
+			'post_type'   => EETHAL_ENROLL_TYPE,
+			'post_status' => 'publish',
+			'numberposts' => 1,
+			'fields'      => 'ids',
+			'meta_query'  => array( // phpcs:ignore WordPress.DB.SlowDBQuery
+				array(
+					'key'   => '_eethal_enroll_batch',
+					'value' => $data['batch'],
+				),
+				array(
+					'relation' => 'OR',
+					array(
+						'key'   => '_eethal_enroll_email',
+						'value' => $data['email'],
+					),
+					array(
+						'key'   => '_eethal_enroll_mobile',
+						'value' => $data['mobile'],
+					),
+				),
+			),
+		)
+	);
 }
 
 /**
